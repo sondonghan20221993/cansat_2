@@ -50,16 +50,44 @@ class FeatureSfmBackend(ReconstructionBackend):
         return {"images": loaded_images, "aux_pose": aux_pose}
 
     def infer(self, preprocessed: Any) -> Any:
-        frame_a = preprocessed["images"][0]
-        frame_b = preprocessed["images"][1]
+        frames = preprocessed["images"]
+        all_points: List[List[float]] = []
+        all_colors: List[tuple[int, int, int]] = []
+        total_matches = 0
+        total_inliers = 0
+        successful_pairs = 0
+
+        for idx in range(len(frames) - 1):
+            pair_result = self._triangulate_pair(frames[idx], frames[idx + 1])
+            if pair_result is None:
+                continue
+            all_points.extend(pair_result["points"])
+            all_colors.extend(pair_result["colors"])
+            total_matches += pair_result["match_count"]
+            total_inliers += pair_result["inlier_count"]
+            successful_pairs += 1
+
+        if not all_points:
+            raise RuntimeError("No valid 3D points could be reconstructed from the provided image sequence.")
+
+        return {
+            "points": all_points,
+            "colors": all_colors,
+            "images_used": len(frames),
+            "successful_pairs": successful_pairs,
+            "match_count": total_matches,
+            "inlier_count": total_inliers,
+        }
+
+    def _triangulate_pair(self, frame_a: Dict[str, Any], frame_b: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         kp_a, des_a = self._orb.detectAndCompute(frame_a["gray"], None)
         kp_b, des_b = self._orb.detectAndCompute(frame_b["gray"], None)
         if des_a is None or des_b is None:
-            raise RuntimeError("Feature detection failed: descriptors unavailable.")
+            return None
 
         matches = self._matcher.match(des_a, des_b)
         if len(matches) < 12:
-            raise RuntimeError(f"Not enough matches for triangulation: {len(matches)}")
+            return None
 
         matches = sorted(matches, key=lambda m: m.distance)[:800]
         pts_a = np.float32([kp_a[m.queryIdx].pt for m in matches])
@@ -76,17 +104,17 @@ class FeatureSfmBackend(ReconstructionBackend):
             pts_a, pts_b, camera_matrix, method=cv2.RANSAC, prob=0.999, threshold=1.0
         )
         if essential is None:
-            raise RuntimeError("Essential matrix estimation failed.")
+            return None
 
         _, rotation, translation, pose_mask = cv2.recoverPose(essential, pts_a, pts_b, camera_matrix)
         if pose_mask is None:
-            raise RuntimeError("Pose recovery failed.")
+            return None
 
         inliers = pose_mask.ravel().astype(bool)
         pts_a = pts_a[inliers]
         pts_b = pts_b[inliers]
         if len(pts_a) < 8:
-            raise RuntimeError("Not enough inlier correspondences after pose recovery.")
+            return None
 
         proj_a = camera_matrix @ np.hstack((np.eye(3), np.zeros((3, 1))))
         proj_b = camera_matrix @ np.hstack((rotation, translation))
@@ -99,7 +127,7 @@ class FeatureSfmBackend(ReconstructionBackend):
         points_3d = points_3d[valid_mask]
         pts_a = pts_a[valid_mask]
         if len(points_3d) == 0:
-            raise RuntimeError("Triangulation produced no valid 3D points.")
+            return None
 
         colors = []
         image = frame_a["image"]
@@ -112,7 +140,6 @@ class FeatureSfmBackend(ReconstructionBackend):
         return {
             "points": points_3d.tolist(),
             "colors": colors,
-            "images_used": 2,
             "match_count": len(matches),
             "inlier_count": int(inliers.sum()),
         }
@@ -135,6 +162,7 @@ class FeatureSfmBackend(ReconstructionBackend):
             "quality_indicators": {
                 "backend": self.backend_name,
                 "images_used": raw_result["images_used"],
+                "successful_pairs": raw_result["successful_pairs"],
                 "match_count": raw_result["match_count"],
                 "inlier_count": raw_result["inlier_count"],
                 "point_count": len(raw_result["points"]),

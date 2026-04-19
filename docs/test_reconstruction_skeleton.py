@@ -110,22 +110,23 @@ class ReconstructionSkeletonTest(unittest.TestCase):
         orchestrator = ReconstructionOrchestrator(validator, client)
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            img1 = np.zeros((240, 320, 3), dtype=np.uint8)
-            cv2.circle(img1, (80, 120), 20, (255, 255, 255), -1)
-            cv2.circle(img1, (160, 80), 18, (255, 255, 255), -1)
-            cv2.circle(img1, (220, 170), 16, (255, 255, 255), -1)
-            cv2.rectangle(img1, (40, 30), (90, 60), (255, 255, 255), -1)
-            cv2.rectangle(img1, (200, 30), (260, 65), (255, 255, 255), -1)
-            matrix = np.float32([[1, 0, 8], [0, 1, 4]])
-            img2 = cv2.warpAffine(img1, matrix, (320, 240))
+            base = np.zeros((240, 320, 3), dtype=np.uint8)
+            cv2.circle(base, (80, 120), 20, (255, 255, 255), -1)
+            cv2.circle(base, (160, 80), 18, (255, 255, 255), -1)
+            cv2.circle(base, (220, 170), 16, (255, 255, 255), -1)
+            cv2.rectangle(base, (40, 30), (90, 60), (255, 255, 255), -1)
+            cv2.rectangle(base, (200, 30), (260, 65), (255, 255, 255), -1)
 
-            path1 = os.path.join(tmpdir, "a.png")
-            path2 = os.path.join(tmpdir, "b.png")
-            cv2.imwrite(path1, img1)
-            cv2.imwrite(path2, img2)
+            paths = []
+            for idx, shift in enumerate([0, 4, 8, 12, 16], start=1):
+                matrix = np.float32([[1, 0, shift], [0, 1, shift // 2]])
+                frame = cv2.warpAffine(base, matrix, (320, 240))
+                path = os.path.join(tmpdir, f"{idx}.png")
+                cv2.imwrite(path, frame)
+                paths.append(path)
 
             result = orchestrator.run(
-                images=[self._make_image(path1, "a"), self._make_image(path2, "b")],
+                images=[self._make_image(path, f"img-{idx}") for idx, path in enumerate(paths, start=1)],
                 image_set_id="set-d",
                 output_format="glb",
             )
@@ -133,6 +134,7 @@ class ReconstructionSkeletonTest(unittest.TestCase):
         self.assertEqual(result.status, JobStatus.SUCCESS)
         self.assertEqual(result.output_format, "glb")
         self.assertTrue(str(result.output_ref).endswith(".glb"))
+        self.assertGreater(result.quality.quality_indicators.get("successful_pairs", 0), 0)
 
 
 if __name__ == "__main__":
