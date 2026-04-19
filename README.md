@@ -32,6 +32,30 @@ docs/
 6. [Pose / Frame Alignment Requirements](docs/modules/06-pose-frame-alignment-requirements.md)
 7. [cFS Integration Requirements](docs/modules/07-cfs-integration-requirements.md)
 8. [Verification Plan](docs/verification/08-verification-plan.md)
+9. [Module Ownership Guide](docs/module-ownership-guide.md)
+
+## Team-Based Development Model
+
+This repository is structured so that UWB, 3D mapping, pose alignment, and cFS integration can be developed in parallel and merged through shared architecture and interface documents.
+
+### Ownership by document
+
+- `docs/01-system-requirements.md`: system-level goals, common rules, global constraints
+- `docs/02-system-architecture.md`: module composition, responsibilities, and end-to-end flow
+- `docs/03-interface-specification.md`: contracts shared between teams
+- `docs/modules/04-uwb-requirements.md`: UWB-specific logic and performance requirements
+- `docs/modules/05-reconstruction-requirements.md`: 3D reconstruction module requirements
+- `docs/modules/06-pose-frame-alignment-requirements.md`: frame and calibration logic
+- `docs/modules/07-cfs-integration-requirements.md`: cFS app behavior, SB, timer, config, and events
+- `docs/verification/08-verification-plan.md`: module and integrated verification strategy
+
+### Development principle
+
+- Keep module internals inside module documents.
+- Keep cross-team message formats and data fields in the interface document.
+- Keep system-wide assumptions and constraints in the top-level requirements.
+- Keep integration behavior in the architecture and cFS documents.
+- Keep test methods and acceptance evidence in the verification plan.
 
 ## Writing Rules
 
