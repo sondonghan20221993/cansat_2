@@ -15,10 +15,17 @@ from reconstruction.models.wire import request_to_dict, response_from_dict
 class HttpPollingClient(RemoteExecutor):
     """HTTP polling implementation of the ground-side reconstruction client."""
 
-    def __init__(self, endpoint: str, poll_interval_s: float = 2.0, timeout_s: float = 600.0) -> None:
+    def __init__(
+        self,
+        endpoint: str,
+        poll_interval_s: float = 2.0,
+        timeout_s: float = 600.0,
+        request_timeout_s: float = 900.0,
+    ) -> None:
         self._endpoint = endpoint.rstrip("/")
         self._poll_interval_s = poll_interval_s
         self._timeout_s = timeout_s
+        self._request_timeout_s = request_timeout_s
 
     def submit(self, request: ReconstructionRequest) -> str:
         try:
@@ -47,7 +54,7 @@ class HttpPollingClient(RemoteExecutor):
         os.makedirs(destination_dir, exist_ok=True)
         url = f"{self._endpoint}/jobs/{job_id}/artifact"
         try:
-            with urllib.request.urlopen(url, timeout=30) as response:
+            with urllib.request.urlopen(url, timeout=self._request_timeout_s) as response:
                 filename = _filename_from_headers(response.headers.get("Content-Disposition")) or f"{job_id}.artifact"
                 destination = os.path.abspath(os.path.join(destination_dir, filename))
                 with open(destination, "wb") as fp:
@@ -91,7 +98,7 @@ class HttpPollingClient(RemoteExecutor):
             headers=headers,
             method=method,
         )
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with urllib.request.urlopen(request, timeout=self._request_timeout_s) as response:
             return json.loads(response.read().decode("utf-8"))
 
 

@@ -101,6 +101,7 @@ cd /path/to/cansat_2/docs
 python -m reconstruction.prototype_remote_cli \
   --endpoint http://SERVER_IP:8765 \
   --image-set-id demo-remote \
+  --request-timeout-s 900 \
   --download-dir artifacts/reconstruction/downloads \
   --open-viewer \
   /absolute/path/on/server/image1.png \
@@ -110,7 +111,7 @@ python -m reconstruction.prototype_remote_cli \
 Important prototype limitation:
 
 - Image paths are interpreted on the server side. This matches the current A6000 workflow where images already exist on the server.
-- The server executes jobs synchronously internally, but the client contract is already polling-based and can support asynchronous job execution later.
+- The server executes jobs synchronously internally in this prototype. Use `--request-timeout-s` long enough for DUSt3R jobs, or replace the server internals with asynchronous background execution later.
 - The downloaded artifact can also be visualized directly:
 
 ```bash
