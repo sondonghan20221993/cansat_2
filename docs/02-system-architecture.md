@@ -84,5 +84,6 @@ Describe how information moves between modules.
 
 ## 7. Open Items
 
-- TBD
-- TBD
+- OI-ARCH-01: Deployment split between ground-side Raspberry Pi, remote GPU server, and any onboard/drone-side process needs to be finalized.
+- OI-ARCH-02: Large artifact transfer path for reconstruction outputs needs to be finalized against cFS SB payload limits and storage constraints.
+- OI-ARCH-03: Failure isolation policy between UWB, reconstruction, alignment, and cFS integration needs to be finalized.

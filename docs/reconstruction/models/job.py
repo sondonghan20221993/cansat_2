@@ -17,7 +17,12 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TypeAlias
+
+
+# Prototype representation for the interface-level cFS_TIME timestamp.
+# The wire layer serializes datetime values to ISO-8601 strings.
+CfsTime: TypeAlias = datetime
 
 
 # ---------------------------------------------------------------------------
@@ -59,15 +64,15 @@ class ImageDescriptor:
     Lightweight reference to a single input image.
 
     image_id    — unique identifier for this image (REC-IN-02)
-    timestamp   — acquisition timestamp as ISO-8601 string or epoch float.
-                  Exact timestamp convention: OI-IFC-06 / 03-interface-specification.md
+    timestamp   — acquisition timestamp using the interface-level cFS_TIME
+                  convention (REC-IFC-06 / 03-interface-specification.md)
     source_path — local path or URI; interpretation is transport-dependent (OI-REC-07)
     metadata    — arbitrary key-value pairs for future extension
                   (e.g. camera intrinsics when available — REC-IN-05)
     """
 
     image_id: str
-    timestamp: Any                          # TODO(OI-IFC-06): fix timestamp type
+    timestamp: CfsTime
     source_path: str
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -94,7 +99,7 @@ class ReconstructionRequest:
                       defined in the interface spec (REC-IFC-01 TBD fields)
     """
 
-    image_set_id: Any
+    image_set_id: str
     images: List[ImageDescriptor]
     output_format: str
     job_id: str = field(default_factory=generate_job_id)
@@ -135,6 +140,8 @@ class ReconstructionResponse:
     status: JobStatus
     result_ref: Optional[Any] = None        # TODO(OI-REC-03, OI-REC-07): define
     output_format: Optional[str] = None
+    poll_url: Optional[str] = None
+    artifact_url: Optional[str] = None
     quality_meta: Dict[str, Any] = field(default_factory=dict)
     error_code: Optional[str] = None        # TODO(REC-IFC-03): define enum
     processing_duration_s: Optional[float] = None

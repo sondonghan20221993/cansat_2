@@ -7,6 +7,22 @@ from typing import Any
 from reconstruction.models.job import ImageDescriptor, JobStatus, ReconstructionRequest, ReconstructionResponse
 
 
+def _parse_cfs_time(value: Any) -> datetime:
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, (int, float)):
+        return datetime.fromtimestamp(value, tz=timezone.utc)
+    if isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value)
+            if parsed.tzinfo is None:
+                return parsed.replace(tzinfo=timezone.utc)
+            return parsed
+        except ValueError:
+            pass
+    return datetime.now(timezone.utc)
+
+
 def _to_wire_value(value: Any) -> Any:
     if isinstance(value, datetime):
         return value.isoformat()
@@ -27,7 +43,7 @@ def request_from_dict(payload: dict[str, Any]) -> ReconstructionRequest:
     images = [
         ImageDescriptor(
             image_id=item["image_id"],
-            timestamp=item.get("timestamp"),
+            timestamp=_parse_cfs_time(item.get("timestamp")),
             source_path=item["source_path"],
             metadata=item.get("metadata", {}),
         )
@@ -43,7 +59,7 @@ def request_from_dict(payload: dict[str, Any]) -> ReconstructionRequest:
         submitted_at = datetime.now(timezone.utc)
     return ReconstructionRequest(
         job_id=payload["job_id"],
-        image_set_id=payload.get("image_set_id"),
+        image_set_id=str(payload["image_set_id"]),
         images=images,
         output_format=payload.get("output_format", "glb"),
         aux_pose=payload.get("aux_pose"),
@@ -68,6 +84,8 @@ def response_from_dict(payload: dict[str, Any]) -> ReconstructionResponse:
         status=JobStatus(payload["status"]),
         result_ref=payload.get("result_ref"),
         output_format=payload.get("output_format"),
+        poll_url=payload.get("poll_url"),
+        artifact_url=payload.get("artifact_url"),
         quality_meta=payload.get("quality_meta", {}),
         error_code=payload.get("error_code"),
         processing_duration_s=payload.get("processing_duration_s"),

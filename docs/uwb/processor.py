@@ -5,8 +5,9 @@ UWB cycle processing and trilateration.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 from math import sqrt
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from .config import UwbConfig
 from .models import AnchorDistance, AnchorPosition, DistanceSet, ErrorCode, PositionResult
@@ -25,12 +26,16 @@ class UwbProcessor:
         self._config = config
         self._distance_set = DistanceSet()
         self._rejected_non_positive = False
+        self._logger = logging.getLogger(__name__)
 
     def begin_cycle(self) -> None:
         self._distance_set.reset()
         self._rejected_non_positive = False
 
     def ingest_distance(self, measurement: AnchorDistance) -> bool:
+        if measurement.anchor_id not in self._config.anchor_positions:
+            return False
+
         if measurement.distance_cm <= 0:
             self._rejected_non_positive = True
             return False
@@ -38,18 +43,23 @@ class UwbProcessor:
         self._distance_set.update(measurement)
         return True
 
-    def finalize_cycle(self) -> PositionResult:
+    def finalize_cycle(self, waited_ms: Optional[float] = None) -> Optional[PositionResult]:
         anchor_ids = self._config.ordered_anchor_ids()
         distances = self._distance_set.distances_for(anchor_ids)
         anchor_count = self._distance_set.count_for(anchor_ids)
-        timestamp = self._distance_set.last_timestamp
+        timestamp = self._distance_set.last_timestamp if self._distance_set.last_timestamp is not None else 0.0
 
         if not self._distance_set.is_complete(anchor_ids):
+            elapsed_ms = self._config.extra_wait_ms if waited_ms is None else waited_ms
+            if elapsed_ms < self._config.extra_wait_ms:
+                return None
+
+            error_code = ErrorCode.NON_POSITIVE_RANGE if self._rejected_non_positive else ErrorCode.MISSING_DISTANCE
             result = PositionResult.invalid(
                 timestamp=timestamp,
                 anchor_count=anchor_count,
                 distances=distances,
-                error_code=ErrorCode.MISSING_DISTANCE,
+                error_code=error_code,
             )
             self.begin_cycle()
             return result
@@ -57,13 +67,19 @@ class UwbProcessor:
         try:
             solution = self._solve_position(anchor_ids, distances)
         except ValueError as exc:
-            error_code = ErrorCode.GEOMETRY_INVALID if str(exc) == "geometry" else ErrorCode.NUMERIC_FAILURE
+            reason = str(exc)
+            if reason == "geometry":
+                error_code = ErrorCode.GEOMETRY_INVALID
+            elif reason == "z-invalid":
+                error_code = ErrorCode.Z_INVALID
+            else:
+                error_code = ErrorCode.NUMERIC_FAILURE
             result = PositionResult.invalid(
                 timestamp=timestamp,
                 anchor_count=anchor_count,
                 distances=distances,
                 error_code=error_code,
-                extra={"reason": str(exc)},
+                extra={"reason": reason},
             )
             self.begin_cycle()
             return result
@@ -72,6 +88,11 @@ class UwbProcessor:
         if solution.residual > self._config.residual_warning_threshold_cm:
             extra["warning"] = "RESIDUAL_EXCEEDS_THRESHOLD"
             extra["residual_warning_threshold_cm"] = self._config.residual_warning_threshold_cm
+            self._logger.warning(
+                "UWB residual exceeds threshold: residual_cm=%.3f threshold_cm=%.3f",
+                solution.residual,
+                self._config.residual_warning_threshold_cm,
+            )
 
         result = PositionResult.valid_result(
             timestamp=timestamp,
@@ -102,15 +123,9 @@ class UwbProcessor:
         return TrilaterationSolution(x=x, y=y, z=z, residual=residual)
 
     def _validate_geometry(self, base: AnchorPosition, a2: AnchorPosition, a3: AnchorPosition) -> None:
-        if self._plane_spread(base, a2, a3) > self._config.plane_tolerance_cm:
-            raise ValueError("geometry")
-
         area2 = abs((a2.x - base.x) * (a3.y - base.y) - (a2.y - base.y) * (a3.x - base.x))
         if area2 <= self._config.geometry_tolerance_cm:
             raise ValueError("geometry")
-
-    def _plane_spread(self, base: AnchorPosition, a2: AnchorPosition, a3: AnchorPosition) -> float:
-        return max(abs(base.z - a2.z), abs(base.z - a3.z), abs(a2.z - a3.z))
 
     def _solve_xy(
         self,

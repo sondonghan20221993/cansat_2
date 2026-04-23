@@ -53,11 +53,23 @@
 
 | TC ID       | 테스트 명                                  | 입력 조건                                                        | 기대 출력                                                              | 대응 요구사항                        |
 |-------------|--------------------------------------------|------------------------------------------------------------------|------------------------------------------------------------------------|--------------------------------------|
-| TC-REC-01   | 고정 좌표계(ENU) 점군 시각화 일관성 검증   | 동일 이미지 세트, 동일 frame/transform 파라미터로 2회 실행      | 2회 결과의 transform.linear/translate 동일, 점군 축 방향 일관          | REC-OUT-12, REC-VER-08               |
-| TC-REC-02   | 카메라 궤적-이미지 매핑 검증               | camera_trajectory 포함 결과를 UI에서 클릭                        | 선택 노드의 image_id/source_path가 해당 카메라 노드와 일치             | REC-OUT-11, REC-OUT-13, REC-VER-09   |
-| TC-REC-03   | 좌표 변환 파라미터 적용 검증               | yaw/pitch/roll/translation을 비영(0) 값으로 설정                 | UI 표기 linear matrix/trajectory/point cloud가 동일 파라미터로 변환됨  | REC-OUT-12, REC-VER-08               |
+| TC-REC-01   | 고정 좌표계(ENU) 점군 시각화 일관성 검증   | 동일 이미지 세트, 동일 frame/transform 파라미터로 2회 실행      | 2회 결과의 transform.linear/translate 동일, 점군 축 방향 일관          | REC-OUT-12               |
+| TC-REC-02   | 카메라 궤적-이미지 매핑 검증               | camera_trajectory 포함 결과를 UI에서 클릭                        | 선택 노드의 image_id/source_path가 해당 카메라 노드와 일치             | REC-OUT-11, REC-OUT-13   |
+| TC-REC-03   | 좌표 변환 파라미터 적용 검증               | yaw/pitch/roll/translation을 비영(0) 값으로 설정                 | UI 표기 linear matrix/trajectory/point cloud가 동일 파라미터로 변환됨  | REC-OUT-12               |
 | TC-REC-04   | HTTP polling 원격 실행 검증                | `POST /jobs` 후 `GET /jobs/{job_id}` polling                     | job_id가 유지되고 최종 status/result_ref/output_format이 반환됨        | REC-PROC-09, REC-PROC-12, REC-PROC-13A |
 | TC-REC-05   | Artifact 자동 다운로드 검증                | 성공한 job에 대해 `GET /jobs/{job_id}/artifact` 호출             | 클라이언트가 artifact를 로컬 경로에 저장하고 viewer 입력으로 사용 가능 | REC-PROC-11, REC-PROC-13B, REC-OUT-01 |
+
+Additional reconstruction verification cases:
+
+| TC ID       | Test Name | Input Condition | Expected Output | Requirement |
+|-------------|-----------|-----------------|-----------------|-------------|
+| TC-REC-06   | Nominal reconstruction smoke test | Representative valid image set | Reconstruction finishes with success/degraded result and quality metadata | REC-VER-01 |
+| TC-REC-07   | Image-only reconstruction path | Valid images without aux_pose | Reconstruction starts and returns a structured result | REC-VER-02 |
+| TC-REC-08   | Auxiliary pose input path | Valid images with optional aux_pose/localization input | Auxiliary input is accepted without becoming mandatory | REC-VER-03 |
+| TC-REC-09   | Input and remote failure handling | Corrupted images, insufficient image count, or remote failure | Failure/degraded status and error metadata are returned | REC-VER-04 |
+| TC-REC-10   | Remote job return integration | Ground-side client submits job to remote server | Request/response identity and returned result are preserved | REC-VER-05 |
+| TC-REC-11   | Reconstruction backend swap | Replace reconstruction backend with compatible implementation | Module boundary contract remains unchanged | REC-VER-06 |
+| TC-REC-12   | Output format swap | Change configured output_format | Pipeline returns the requested format without module redesign | REC-VER-07 |
 
 ### 3.4 Pose / Frame Alignment Sensor Tests
 
@@ -110,34 +122,81 @@
 
 ## 8. Traceability
 
+The main table maps implementation requirements to test cases. Verification
+requirement identifiers such as REC-VER-* are listed in a separate table below
+to avoid mixing implementation requirements and verification requirements.
+
 | Requirement ID   | Document                    | Verification Method | TC ID       |
 |------------------|-----------------------------|---------------------|-------------|
+| UWB-IN-01        | 04-uwb-requirements.md      | Unit Test           | TC-UWB-01   |
+| UWB-IN-02        | 04-uwb-requirements.md      | Unit Test           | TC-UWB-06   |
+| UWB-IN-03        | 04-uwb-requirements.md      | Unit Test           | TC-UWB-01   |
 | UWB-IN-04        | 04-uwb-requirements.md      | Unit Test           | TC-UWB-05   |
+| UWB-IN-05        | 04-uwb-requirements.md      | Unit Test           | TC-UWB-01, TC-UWB-13 |
+| UWB-PROC-01      | 04-uwb-requirements.md      | Unit Test           | TC-UWB-02, TC-UWB-15 |
 | UWB-PROC-02      | 04-uwb-requirements.md      | Unit Test           | TC-UWB-02, TC-UWB-04 |
 | UWB-PROC-03      | 04-uwb-requirements.md      | Unit Test           | TC-UWB-03, TC-UWB-04 |
+| UWB-PROC-04      | 04-uwb-requirements.md      | Unit Test           | TC-UWB-15   |
 | UWB-PROC-05      | 04-uwb-requirements.md      | Unit Test           | TC-UWB-06   |
+| UWB-PROC-06      | 04-uwb-requirements.md      | Unit Test           | TC-UWB-01, TC-UWB-02 |
+| UWB-PROC-07      | 04-uwb-requirements.md      | Unit Test           | TC-UWB-01, TC-UWB-06 |
+| UWB-PROC-08      | 04-uwb-requirements.md      | Unit Test           | TC-UWB-03, TC-UWB-13 |
 | UWB-PROC-09      | 04-uwb-requirements.md      | Unit Test           | TC-UWB-01   |
 | UWB-PROC-10      | 04-uwb-requirements.md      | Unit Test           | TC-UWB-16   |
 | UWB-PROC-11      | 04-uwb-requirements.md      | Unit Test           | TC-UWB-11   |
 | UWB-PROC-12      | 04-uwb-requirements.md      | Unit Test           | TC-UWB-12   |
 | UWB-PROC-13      | 04-uwb-requirements.md      | Unit Test           | TC-UWB-10   |
 | UWB-PROC-14      | 04-uwb-requirements.md      | Unit Test           | TC-UWB-09   |
+| UWB-PROC-15      | 04-uwb-requirements.md      | Unit Test           | TC-UWB-07, TC-UWB-08 |
+| UWB-PROC-16      | 04-uwb-requirements.md      | Unit Test           | TC-UWB-07, TC-UWB-08 |
 | UWB-PROC-17      | 04-uwb-requirements.md      | Unit Test           | TC-UWB-07, TC-UWB-08 |
+| UWB-OUT-01       | 04-uwb-requirements.md      | Unit Test           | TC-UWB-01, TC-UWB-11 |
+| UWB-OUT-02       | 04-uwb-requirements.md      | Unit Test           | TC-UWB-01, TC-UWB-16 |
+| UWB-OUT-03       | 04-uwb-requirements.md      | Unit Test           | TC-UWB-07, TC-UWB-08 |
 | UWB-OUT-04~07    | 04-uwb-requirements.md      | Unit Test           | TC-UWB-13   |
+| UWB-OUT-08       | 04-uwb-requirements.md      | Unit Test           | TC-UWB-03, TC-UWB-05, TC-UWB-09, TC-UWB-10, TC-UWB-12 |
 | UWB-OUT-09       | 04-uwb-requirements.md      | Unit Test           | TC-UWB-14   |
 | UWB-OUT-10       | 04-uwb-requirements.md      | Unit Test           | TC-UWB-15   |
+| UWB-PERF-01      | 04-uwb-requirements.md      | Performance Test    | TBD         |
+| UWB-PERF-02      | 04-uwb-requirements.md      | Performance Test    | TBD         |
 | REC-OUT-11       | 05-reconstruction-requirements.md | Unit Test      | TC-REC-02   |
 | REC-OUT-12       | 05-reconstruction-requirements.md | Unit Test      | TC-REC-01, TC-REC-03 |
 | REC-OUT-13       | 05-reconstruction-requirements.md | Unit Test      | TC-REC-02   |
-| REC-VER-08       | 05-reconstruction-requirements.md | Unit Test      | TC-REC-01, TC-REC-03 |
-| REC-VER-09       | 05-reconstruction-requirements.md | Unit Test      | TC-REC-02   |
 | REC-PROC-13A     | 05-reconstruction-requirements.md | Integration Test | TC-REC-04 |
 | REC-PROC-13B     | 05-reconstruction-requirements.md | Integration Test | TC-REC-05 |
 | ALIGN-PROC-01    | 06-pose-frame-alignment-requirements.md | Integration Test | TC-ALIGN-01 |
 | ALIGN-PROC-02    | 06-pose-frame-alignment-requirements.md | Integration Test | TC-ALIGN-01 |
 | ALIGN-PROC-04    | 06-pose-frame-alignment-requirements.md | Integration Test | TC-ALIGN-02 |
 | ALIGN-PROC-05    | 06-pose-frame-alignment-requirements.md | Integration Test | TC-ALIGN-02 |
+| ALIGN-OUT-01     | 06-pose-frame-alignment-requirements.md | Integration Test | TC-ALIGN-02 |
+| ALIGN-OUT-02     | 06-pose-frame-alignment-requirements.md | Integration Test | TC-ALIGN-01, TC-ALIGN-02 |
+| ALIGN-OUT-03     | 06-pose-frame-alignment-requirements.md | Integration Test | TC-ALIGN-01 |
+| ALIGN-OUT-04     | 06-pose-frame-alignment-requirements.md | Integration Test | TC-ALIGN-01 |
+| ALIGN-OUT-05     | 06-pose-frame-alignment-requirements.md | Integration Test | TC-ALIGN-03 |
 | ALIGN-ERR-04     | 06-pose-frame-alignment-requirements.md | Integration Test | TC-ALIGN-03 |
+| CFS-APP-01~04    | 07-cfs-integration-requirements.md | Module Integration Test | TBD |
+| CFS-SB-01~04     | 07-cfs-integration-requirements.md | Module Integration Test | TBD |
+| CFS-TMR-01~04    | 07-cfs-integration-requirements.md | Unit/Integration Test | TC-UWB-02, TC-UWB-03, TC-UWB-15 |
+| CFS-CFG-01~04    | 07-cfs-integration-requirements.md | Module Integration Test | TBD |
+| CFS-LOG-01~04    | 07-cfs-integration-requirements.md | Module Integration Test | TC-UWB-07, TC-UWB-08 |
+
+### 8.1 Verification Requirement Traceability
+
+| Verification Requirement ID | Document | Verification Method | TC ID |
+|-----------------------------|----------|---------------------|-------|
+| REC-VER-01 | 05-reconstruction-requirements.md | Integration Test | TC-REC-06 |
+| REC-VER-02 | 05-reconstruction-requirements.md | Unit Test | TC-REC-07 |
+| REC-VER-03 | 05-reconstruction-requirements.md | Unit Test | TC-REC-08 |
+| REC-VER-04 | 05-reconstruction-requirements.md | Unit Test | TC-REC-09 |
+| REC-VER-05 | 05-reconstruction-requirements.md | Integration Test | TC-REC-10 |
+| REC-VER-06 | 05-reconstruction-requirements.md | Unit Test | TC-REC-11 |
+| REC-VER-07 | 05-reconstruction-requirements.md | Unit Test | TC-REC-12 |
+| REC-VER-08 | 05-reconstruction-requirements.md | Unit Test | TC-REC-01, TC-REC-03 |
+| REC-VER-09 | 05-reconstruction-requirements.md | Unit Test | TC-REC-02 |
+| ALIGN-VER-01 | 06-pose-frame-alignment-requirements.md | Unit Test | TBD |
+| ALIGN-VER-02 | 06-pose-frame-alignment-requirements.md | Integration Test | TC-ALIGN-01, TC-ALIGN-02 |
+| ALIGN-VER-03 | 06-pose-frame-alignment-requirements.md | Integration Test | TBD |
+| ALIGN-VER-04 | 06-pose-frame-alignment-requirements.md | Integration Test | TC-ALIGN-03 |
 
 ---
 

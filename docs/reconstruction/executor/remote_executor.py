@@ -7,10 +7,10 @@ The ground-side computer submits reconstruction jobs to a remote NVIDIA
 RTX A6000-class GPU server and receives results back (REC-PROC-09 through
 REC-PROC-13, REC-PERF-01, REC-PERF-02).
 
-The transport protocol between ground-side and server is NOT yet determined
-(OI-REC-07).  This module defines the abstract contract only.  Concrete
-implementations (e.g. HTTP, gRPC, shared filesystem) MUST subclass
-RemoteExecutor without changing the interface.
+The prototype transport between ground-side and server is HTTP polling
+(OI-REC-07, resolved for prototype). This module defines the abstract contract
+only. Concrete implementations (e.g. HTTP polling, gRPC, shared filesystem)
+MUST subclass RemoteExecutor without changing the interface.
 """
 
 from __future__ import annotations
@@ -28,7 +28,8 @@ class RemoteExecutor(ABC):
     """
     Abstract interface for submitting reconstruction jobs to the remote server.
 
-    Concrete subclasses implement the actual transport (OI-REC-07).
+    Concrete subclasses implement the actual transport. The current prototype
+    implementation uses HTTP polling (OI-REC-07).
     The module boundary contract is defined here and SHALL NOT change when
     the transport is swapped.
     """

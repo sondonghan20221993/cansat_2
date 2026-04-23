@@ -9,18 +9,18 @@ frozen.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import IntEnum
 from math import nan
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional
 
 
-class ErrorCode(str, Enum):
-    NONE = "NONE"
-    MISSING_DISTANCE = "MISSING_DISTANCE"
-    NON_POSITIVE_RANGE = "NON_POSITIVE_RANGE"
-    NUMERIC_FAILURE = "NUMERIC_FAILURE"
-    GEOMETRY_INVALID = "GEOMETRY_INVALID"
-    Z_INVALID = "Z_INVALID"
+class ErrorCode(IntEnum):
+    NONE = 0x00
+    MISSING_DISTANCE = 0x01
+    NON_POSITIVE_RANGE = 0x02
+    NUMERIC_FAILURE = 0x03
+    GEOMETRY_INVALID = 0x04
+    Z_INVALID = 0x05
 
 
 @dataclass(frozen=True)
@@ -34,14 +34,14 @@ class AnchorPosition:
 class AnchorDistance:
     anchor_id: str
     distance_cm: float
-    timestamp: Any
+    timestamp: float
 
 
 @dataclass
 class DistanceSet:
     distances: Dict[str, float] = field(default_factory=dict)
-    timestamps: Dict[str, Any] = field(default_factory=dict)
-    last_timestamp: Any = None
+    timestamps: Dict[str, float] = field(default_factory=dict)
+    last_timestamp: Optional[float] = None
 
     def reset(self) -> None:
         self.distances.clear()
@@ -65,7 +65,7 @@ class DistanceSet:
 
 @dataclass
 class PositionResult:
-    timestamp: Any
+    timestamp: float
     x: float
     y: float
     z: float
@@ -79,11 +79,11 @@ class PositionResult:
     @classmethod
     def invalid(
         cls,
-        timestamp: Any,
+        timestamp: float,
         anchor_count: int,
         distances: List[float],
         error_code: ErrorCode,
-        extra: Optional[Dict[str, Any]] = None,
+        extra: Optional[Dict[str, object]] = None,
     ) -> "PositionResult":
         return cls(
             timestamp=timestamp,
@@ -101,14 +101,14 @@ class PositionResult:
     @classmethod
     def valid_result(
         cls,
-        timestamp: Any,
+        timestamp: float,
         x: float,
         y: float,
         z: float,
         anchor_count: int,
         distances: List[float],
         residual: float,
-        extra: Optional[Dict[str, Any]] = None,
+        extra: Optional[Dict[str, object]] = None,
     ) -> "PositionResult":
         return cls(
             timestamp=timestamp,

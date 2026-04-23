@@ -159,7 +159,7 @@ Error_Code 정의는 03-interface-specification.md를 따른다.
 
 ## 7. Open Items
 
-- OI-01: Z_INVALID 판정을 위한 "거의 일직선" 판별 임계값(예: condition number
+- OI-01: GEOMETRY_INVALID 판정을 위한 "거의 일직선" 판별 임계값(예: condition number
   기준)을 시스템 레벨에서 확정 필요
 - OI-02: Output_Cycle_Timer 주기 값은 07-cfs-integration-requirements.md에서
   확정 필요
@@ -167,3 +167,7 @@ Error_Code 정의는 03-interface-specification.md를 따른다.
   07-cfs-integration-requirements.md에서 확정 필요
 - OI-04: NUMERIC_FAILURE 판정을 위한 condition number 임계값을
   알고리즘 설계 단계에서 확정 필요
+- OI status update: OI-02 is resolved by 07-cfs-integration-requirements.md
+  CFS-TMR-01 with a 66 ms nominal Output_Cycle_Timer period. OI-03 is
+  partially resolved by CFS-LOG-02 with WARNING log level; stable event/log ID
+  remains open under OI-CFS-02.

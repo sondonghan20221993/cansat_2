@@ -22,12 +22,12 @@ List the top-level components.
 
 | Component | Description | Inputs | Outputs |
 | --- | --- | --- | --- |
-| UWB Module | TBD | TBD | TBD |
+| UWB Module | Estimates drone/tag position from UWB Anchor distance measurements | Anchor distance messages, Anchor coordinates, timer events | Position_Result, UWB logs/status |
 | GPS Interface | Receives global position measurements when available | GPS receiver data | GPS position/time metadata |
 | IMU Interface | Receives vehicle attitude, angular rate, and acceleration data | IMU sensor data | IMU/body-frame motion metadata |
-| Reconstruction Module | TBD | TBD | TBD |
-| Pose / Alignment Module | TBD | TBD | TBD |
-| cFS Integration Layer | TBD | TBD | TBD |
+| Reconstruction Module | Produces image-based 3D reconstruction outputs from drone image sets | Image set metadata, image references, optional auxiliary pose/localization | Reconstruction result reference, quality metadata, camera trajectory metadata |
+| Pose / Alignment Module | Aligns UWB, GPS, IMU, camera, and reconstruction frames into the common World / Map frame | Source poses, transforms, calibration parameters, reconstruction metadata | Aligned pose/transform metadata, calibration status, source selection metadata |
+| cFS Integration Layer | Provides runtime integration through cFS app lifecycle, Software Bus messages, timers, configuration, and events | Module messages, timer events, configuration tables, health/status events | Published SB messages, scheduled callbacks, event logs, diagnostic telemetry |
 
 ## 4. End-to-End Data Flow
 
@@ -54,7 +54,7 @@ Define system-wide conventions.
 
 ### 6.1 Functional Requirements
 
-- The system shall ...
+- The system shall provide a modular pipeline for collecting sensor/source data, producing reconstruction outputs, and aligning results into the common World / Map frame.
 - The system shall support UWB, GPS, IMU, camera, and reconstruction data as independent sensor/source inputs.
 - The system shall preserve source-specific measurements before converting them into a common World / Map coordinate frame.
 - The system shall allow reconstruction outputs to remain in a relative reconstruction frame until alignment metadata is available.
@@ -85,5 +85,5 @@ Define system-wide conventions.
 
 ## 7. Open Items
 
-- TBD
-- TBD
+- OI-SYS-01: System-level latency, update-rate, and accuracy targets need to be finalized.
+- OI-SYS-02: Deployment environment, hardware dependencies, and security policy need to be finalized.

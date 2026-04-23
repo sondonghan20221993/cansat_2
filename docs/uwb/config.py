@@ -26,6 +26,18 @@ class UwbConfig:
     output_cycle_name: str = "Output_Cycle_Timer"
     metadata: Dict[str, object] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        if len(self.anchor_positions) != 4:
+            raise ValueError("UwbConfig requires exactly 4 anchor positions.")
+
+        ordered = self.ordered_anchor_ids()
+        if len(ordered) != 4:
+            raise ValueError("UwbConfig requires exactly 4 anchor IDs.")
+
+        for anchor_id in ordered:
+            if anchor_id not in self.anchor_positions:
+                raise ValueError(f"Anchor ID '{anchor_id}' is missing in anchor_positions.")
+
     def ordered_anchor_ids(self) -> List[str]:
         if self.anchor_ids:
             return list(self.anchor_ids)

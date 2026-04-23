@@ -42,11 +42,10 @@ class ReconstructionConfig:
     job_timeout_seconds: Optional[float] = None  # TODO(OI-REC-06): set timeout
 
     # -------------------------------------------------------------------------
-    # OI-REC-07: Remote execution protocol — TBD
-    # The executor_endpoint is intentionally untyped here; the RemoteExecutor
-    # implementation will interpret it according to the chosen transport.
+    # OI-REC-07: Prototype transport is HTTP polling.
+    # The executor_endpoint stores the base URL for the HTTP polling server.
     # -------------------------------------------------------------------------
-    executor_endpoint: Optional[str] = None  # TODO(OI-REC-07): set endpoint
+    executor_endpoint: Optional[str] = None
 
     # -------------------------------------------------------------------------
     # Backend selection — allows swapping DUSt3R-family model (REC-PROC-06)

@@ -95,10 +95,11 @@ For reconstruction output, the module SHALL estimate or apply:
 
 ## 6. Output Requirements
 
-- Unified pose output in World / Map frame
-- Alignment metadata including source frames, target frame, transform matrix, scale, and timestamp basis
-- Calibration status for UWB-to-World, GPS-to-local, IMU-to-Body, Camera-to-Body/Tag, and Reconstruction-to-World transforms
-- Source selection metadata indicating whether UWB, GPS, IMU, camera pose, or reconstruction constraints were used
+- **ALIGN-OUT-01**: The module SHALL output unified pose or transform metadata in the World / Map frame when alignment is available.
+- **ALIGN-OUT-02**: The module SHALL include alignment metadata containing source frame, target frame, transform matrix, scale, and timestamp basis.
+- **ALIGN-OUT-03**: The module SHALL report calibration status for UWB-to-World, GPS-to-local, IMU-to-Body, Camera-to-Body/Tag, and Reconstruction-to-World transforms.
+- **ALIGN-OUT-04**: The module SHALL include source selection metadata indicating whether UWB, GPS, IMU, camera pose, or reconstruction constraints were used.
+- **ALIGN-OUT-05**: The module SHALL include alignment status in each output using `ALIGNED`, `PARTIAL_ALIGNMENT`, or `UNALIGNED`.
 
 ## 7. Error Handling Requirements
 
@@ -109,10 +110,10 @@ For reconstruction output, the module SHALL estimate or apply:
 
 ## 8. Test Requirements
 
-- Unit tests for transform calculation
-- Integration tests for UWB + GPS + IMU + reconstruction alignment metadata
-- Validation against known reference poses
-- Tests for missing sensor fallback behavior
+- **ALIGN-VER-01**: The verification plan SHALL include unit tests for transform calculation.
+- **ALIGN-VER-02**: The verification plan SHALL include integration tests for UWB + GPS + IMU + reconstruction alignment metadata.
+- **ALIGN-VER-03**: The verification plan SHALL include validation against known reference poses.
+- **ALIGN-VER-04**: The verification plan SHALL include tests for missing sensor fallback behavior.
 
 ## 9. Open Items
 

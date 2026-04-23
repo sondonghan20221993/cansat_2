@@ -71,6 +71,9 @@ Reconstruction 결과의 좌표 기반 검증 UI 연동 필드 정의:
 | `camera_trajectory[].image_id` | string   | Yes  | 카메라 노드와 매핑되는 이미지 식별자 |
 | `camera_trajectory[].source_path` | string | No   | 디버그/검증용 원본 이미지 경로 |
 | `camera_trajectory[].position` | float64[3] | Yes | 고정 좌표계 기준 카메라 위치 |
+| `uwb_overlay_points[]` | list            | No   | 검증 UI에 겹쳐 표시할 UWB 좌표 목록 |
+| `uwb_overlay_points[].label` | string     | No   | UWB 점 식별 라벨 |
+| `uwb_overlay_points[].position` | float64[3] | Yes | `frame_id`/`transform` 적용 전 원본 UWB 좌표(cm) |
 
 ---
 
@@ -91,7 +94,7 @@ Request payload:
 | `image_set_id` | string | Yes | Logical image set identifier |
 | `images[]` | list | Yes | Ordered image descriptors |
 | `images[].image_id` | string | Yes | Unique image identifier |
-| `images[].timestamp` | string/number | Yes | Acquisition timestamp |
+| `images[].timestamp` | cFS_TIME | Yes | Acquisition timestamp serialized by the wire layer |
 | `images[].source_path` | string | Yes | Server-readable image path or URI |
 | `output_format` | string | Yes | Requested external output format, currently usually `glb` |
 | `aux_pose` | object/null | No | Optional camera pose or localization aid |
