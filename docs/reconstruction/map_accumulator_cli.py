@@ -474,6 +474,18 @@ def _sample_pose_points(poses: list[dict[str, Any]], max_points: int) -> tuple[l
     return [poses[int(i)] for i in idx], total
 
 
+def _sample_artifact_points(artifact_path: str | None, max_points: int) -> tuple[list[list[float]], list[list[int]], int]:
+    if not artifact_path:
+        return [], [], 0
+    try:
+        artifact = load_reconstruction_artifact(artifact_path)
+    except Exception:  # noqa: BLE001
+        return [], [], 0
+    total_points = int(len(artifact.points))
+    points, colors = _sample_points(artifact.points, artifact.colors, max_points)
+    return points.tolist(), colors.tolist(), total_points
+
+
 def build_session_state(session_endpoint: str, session_id: str, max_points: int) -> dict[str, Any]:
     endpoint = session_endpoint.rstrip("/")
     if endpoint.startswith("file:///"):
@@ -487,32 +499,26 @@ def build_session_state(session_endpoint: str, session_id: str, max_points: int)
     sampled_poses, total_pose_count = _sample_pose_points(raw_poses, max_points)
     for pose in sampled_poses:
         index = int(pose.get("index", 0))
+        raw_position = pose.get("position", [0.0, 0.0, 0.0])
         poses_payload.append({
             "image_id": pose.get("image_id", f"frame-{index:06d}"),
             "index": index,
             "position": [
-                float(index),
-                float(index % 5) * 0.1,
-                float(index % 7) * 0.05,
+                float(raw_position[0]),
+                float(raw_position[1]),
+                float(raw_position[2]),
             ],
             "is_keyframe": bool(pose.get("is_keyframe", index % 5 == 0)),
             "source_path": pose.get("source_path"),
         })
 
-    map_points: list[list[float]] = []
-    map_colors: list[list[int]] = []
-    for pose in poses_payload:
-        x, y, z = pose["position"]
-        map_points.extend([
-            [x, y, z],
-            [x + 0.05, y + 0.02, z + 0.01],
-            [x - 0.05, y - 0.02, z + 0.015],
-        ])
-        map_colors.extend([[88, 166, 255], [255, 77, 79], [82, 196, 26]])
+    raw_map_state = state.get("map_state_ref") if isinstance(state.get("map_state_ref"), dict) else {}
+    map_path = raw_map_state.get("path") if isinstance(raw_map_state, dict) else None
+    map_points, map_colors, loaded_point_count = _sample_artifact_points(map_path, max_points)
 
     rendered_point_count = state.get("rendered_point_count")
     if rendered_point_count is None:
-        rendered_point_count = len(raw_poses) * 3
+        rendered_point_count = loaded_point_count
     return {
         "session_id": state["session_id"],
         "status": state["status"],

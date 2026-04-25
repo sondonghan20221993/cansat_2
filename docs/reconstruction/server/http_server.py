@@ -142,7 +142,12 @@ def make_server(host: str, port: int, backend_name: str, artifact_root: str) -> 
 
 
 def _make_service(backend_name: str, artifact_root: str) -> ReconstructionService:
-    backend = FeatureSfmBackend() if backend_name == "feature_sfm" else Dust3rBackend(model_name=backend_name)
+    if backend_name == "feature_sfm":
+        backend = FeatureSfmBackend()
+    elif backend_name in {"dust3r", "vision_reconstruction"}:
+        backend = Dust3rBackend(model_name="vision_reconstruction")
+    else:
+        raise ValueError(f"Unsupported backend: {backend_name}")
     return ReconstructionService(backend=backend, exporter=GlbExporter(artifact_root=artifact_root))
 
 
@@ -154,7 +159,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run the prototype reconstruction HTTP polling server.")
     parser.add_argument("--host", default="0.0.0.0", help="Bind host")
     parser.add_argument("--port", type=int, default=8765, help="Bind port")
-    parser.add_argument("--backend", default="feature_sfm", choices=["feature_sfm", "dust3r"], help="Server backend")
+    parser.add_argument(
+        "--backend",
+        default="feature_sfm",
+        choices=["feature_sfm", "dust3r", "vision_reconstruction"],
+        help="Server backend",
+    )
     parser.add_argument("--artifact-root", default="artifacts/reconstruction", help="Directory for generated artifacts")
     args = parser.parse_args()
 

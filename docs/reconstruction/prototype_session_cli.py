@@ -45,6 +45,7 @@ def main(argv: List[str] | None = None) -> int:
 
     start = subparsers.add_parser("start")
     start.add_argument("--image-sequence-id")
+    start.add_argument("--backend-name")
     start.add_argument("--output-policy", default="session_state_only", choices=["session_state_only", "session_plus_export"])
     start.add_argument("--output-format", default="ply")
 
@@ -88,6 +89,7 @@ def main(argv: List[str] | None = None) -> int:
         payload = client.start_session(
             args.image_sequence_id,
             {
+                "backend_name": args.backend_name,
                 "output_policy": args.output_policy,
                 "output_format": args.output_format,
             },

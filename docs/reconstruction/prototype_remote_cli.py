@@ -22,7 +22,7 @@ def main(argv: List[str] | None = None) -> int:
     parser.add_argument("--download-dir", default="artifacts/reconstruction/downloads", help="Local artifact download directory")
     parser.add_argument("--poll-interval-s", type=float, default=2.0, help="Polling interval")
     parser.add_argument("--timeout-s", type=float, default=600.0, help="Client polling timeout")
-    parser.add_argument("--request-timeout-s", type=float, default=900.0, help="Per-request HTTP timeout. Increase for synchronous long-running DUSt3R prototype jobs.")
+    parser.add_argument("--request-timeout-s", type=float, default=900.0, help="Per-request HTTP timeout. Increase for synchronous long-running reconstruction jobs.")
     parser.add_argument("--open-viewer", action="store_true", help="Generate and open fixed-frame viewer after download")
     parser.add_argument("--frame", default="enu", choices=["opencv", "enu"], help="Viewer frame preset")
     args = parser.parse_args(argv)

@@ -244,7 +244,48 @@ class ReconstructionSkeletonTest(unittest.TestCase):
         self.assertEqual(payload["session_id"], started.session_id)
         self.assertEqual(payload["frame_count"], 3)
         self.assertEqual(len(payload["pose_stream_ref"]["poses"]), 3)
-        self.assertGreater(len(payload["map_points"]), 0)
+        self.assertEqual(len(payload["map_points"]), 0)
+
+    def test_build_session_state_reads_real_ply_map(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ply_path = os.path.join(tmpdir, "sample.ply")
+            state_path = os.path.join(tmpdir, "session-state.json")
+            with open(ply_path, "w", encoding="utf-8") as fp:
+                fp.write(
+                    "ply\n"
+                    "format ascii 1.0\n"
+                    "element vertex 2\n"
+                    "property float x\n"
+                    "property float y\n"
+                    "property float z\n"
+                    "property uchar red\n"
+                    "property uchar green\n"
+                    "property uchar blue\n"
+                    "end_header\n"
+                    "0 0 0 255 0 0\n"
+                    "1 2 3 0 255 0\n"
+                )
+            payload = {
+                "session_id": "session-xyz",
+                "status": "active",
+                "frame_count": 2,
+                "keyframe_count": 1,
+                "rendered_point_count": 2,
+                "pose_stream_ref": {
+                    "poses": [
+                        {"image_id": "frame-000000", "index": 0, "position": [0, 0, 0], "is_keyframe": True},
+                        {"image_id": "frame-000001", "index": 1, "position": [1, 0, 0], "is_keyframe": False},
+                    ]
+                },
+                "map_state_ref": {"path": ply_path},
+                "alignment_status": "UNALIGNED",
+            }
+            with open(state_path, "w", encoding="utf-8") as fp:
+                json.dump(payload, fp)
+            state = build_session_state(f"file:///{state_path.replace(os.sep, '/')}", "session-xyz", 100)
+
+        self.assertEqual(len(state["map_points"]), 2)
+        self.assertEqual(state["map_points"][1], [1.0, 2.0, 3.0])
 
     def test_session_http_client_happy_path(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

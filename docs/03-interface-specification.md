@@ -74,6 +74,23 @@ binary payload on the baseline SB path.
 The detailed field structures for `IMU_Message` and `GPS_Message` are defined in
 Section 3.2A.
 
+### 3.2C Telemetry Monitor Input Contract
+
+The baseline telemetry monitor input contract for `telemetry_app` is:
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `active_transport_id` | uint8 | Yes | Identifier of the transport path being assessed |
+| `valid` | bool | Yes | `True` when the monitor update is valid for link-state assessment |
+| `update_age_ms` | uint32 | Yes | Age in milliseconds of the most recent valid transport activity indication |
+
+Telemetry monitor input rules:
+
+- The monitor-input producer SHALL provide `active_transport_id`, `valid`, and `update_age_ms` for each accepted telemetry monitor update.
+- `update_age_ms` SHALL represent the elapsed time since the most recent valid transport activity indication used for link-health assessment.
+- `telemetry_app` SHALL treat `valid == False` monitor updates as invalid for nominal link-state refresh.
+- `telemetry_app` SHALL use the configured active transport identifier together with `update_age_ms` to classify the link state as `ALIVE`, `DEGRADED`, or `LOST`.
+
 ### 3.3 Output Data (Reconstruction 검증 UI 연동)
 
 Reconstruction 결과의 좌표 기반 검증 UI 연동 필드 정의:

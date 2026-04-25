@@ -30,6 +30,7 @@ baseline SB path.
 - **CFS-SB-05**: `imu_app` SHALL publish `IMU_STATE_MID (0x1901)` on SB.
 - **CFS-SB-06**: `gps_app` SHALL publish `GPS_STATE_MID (0x1902)` on SB.
 - **CFS-SB-07**: `telemetry_app` SHALL publish `TELEMETRY_STATUS_MID (0x1903)` on SB.
+- **CFS-SB-07A**: The telemetry monitor-input producer SHALL provide `active_transport_id`, `valid`, and `update_age_ms` to `telemetry_app` for link-state assessment.
 - **CFS-SB-08**: `img_app` SHALL publish `IMAGE_META_MID (0x1904)` on SB at a controlled low rate appropriate for image capture events.
 - **CFS-SB-09**: The Pose / Frame Alignment Module SHALL subscribe to `IMU_STATE_MID (0x1901)` and `GPS_STATE_MID (0x1902)`.
 - **CFS-SB-10**: The Reconstruction Module SHALL subscribe to `IMAGE_META_MID (0x1904)`.
@@ -56,6 +57,12 @@ baseline SB path.
 - **CFS-CFG-06**: `telemetry_app` SHALL support configuration of nominal, degraded, and lost-link thresholds.
 - **CFS-CFG-07**: `telemetry_app` SHALL support configuration of the active transport identifier used for link-state assessment.
 - **CFS-CFG-08**: `img_app` SHALL support configuration of image metadata publication rate limits.
+
+## 5A. Deployment-Specific Telemetry Link Rules
+
+- **CFS-DEP-01**: For Linux-based deployments using a serial-connected telemetry radio, the telemetry monitor-input producer SHOULD use a stable device path under `/dev/serial/by-id/` when available.
+- **CFS-DEP-02**: Enumeration-dependent serial paths such as `/dev/ttyUSB*` SHOULD be treated as fallback or debug-only paths unless the deployment environment guarantees stable naming.
+- **CFS-DEP-03**: The deployment configuration SHALL document the serial device path, baud rate, and active transport identifier used by the telemetry monitor-input producer.
 
 ## 6. Logging and Event Handling
 

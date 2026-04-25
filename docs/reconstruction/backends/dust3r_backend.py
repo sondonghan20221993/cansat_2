@@ -21,11 +21,11 @@ from reconstruction.models.job import ImageDescriptor
 class Dust3rBackend(ReconstructionBackend):
     """Placeholder backend for future DUSt3R-family integration."""
 
-    def __init__(self, model_name: str = "dust3r", model_path: Optional[str] = None) -> None:
+    def __init__(self, model_name: str = "vision_reconstruction", model_path: Optional[str] = None) -> None:
         self._model_name = model_name
         self._model_path = model_path
         self._loaded = False
-        self._current_job_id = "dust3r-output"
+        self._current_job_id = "reconstruction-output"
 
     def load(self) -> None:
         self._loaded = True
@@ -44,7 +44,7 @@ class Dust3rBackend(ReconstructionBackend):
             "image_paths": [img.source_path for img in images],
             "image_ids": [img.image_id for img in images],
             "timestamps": [img.timestamp for img in images],
-            "job_id": getattr(self, "_current_job_id", "dust3r-output"),
+            "job_id": getattr(self, "_current_job_id", "reconstruction-output"),
             "aux_pose": aux_pose,
         }
 
