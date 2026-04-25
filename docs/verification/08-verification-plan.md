@@ -113,6 +113,10 @@ Additional reconstruction verification cases:
 | TC-CFS-05 | Configuration validation | Missing required anchor or endpoint config | Affected module does not enter nominal operation and emits traceable event | CFS-CFG-01, CFS-CFG-02, CFS-CFG-03 |
 | TC-CFS-06 | Runtime config update policy | Runtime update request for allowed and disallowed fields | Only runtime-changeable fields are accepted | CFS-CFG-04 |
 | TC-CFS-07 | UWB module disabled config | UWB disabled and Anchor coordinates absent | UWB remains disabled/unavailable and non-UWB modules enter nominal operation | CFS-CFG-05 |
+| TC-CFS-08 | Baseline SB input publication | IMU, GPS, telemetry, and image metadata inputs are generated | `0x1901` through `0x1904` are published by the declared owner apps with valid payload fields | CFS-SB-05, CFS-SB-06, CFS-SB-07, CFS-SB-08 |
+| TC-CFS-09 | Telemetry degraded transition | Link quality violates degraded threshold but not lost timeout | `TELEMETRY_STATUS_MID` reports `DEGRADED` and warning log is emitted | CFS-APP-06, CFS-TMR-06, CFS-LOG-05 |
+| TC-CFS-10 | Telemetry lost and recovery | Valid link updates stop, then resume | `TELEMETRY_STATUS_MID` transitions to `LOST` and later to `ALIVE` or `DEGRADED` with recovery log | CFS-TMR-05, CFS-LOG-05, CFS-LOG-06 |
+| TC-CFS-11 | Image metadata payload-only rule | Image capture event occurs | `IMAGE_META_MID` contains metadata/reference only and no raw binary image payload | CFS-APP-07, CFS-SB-08 |
 
 ---
 
@@ -257,10 +261,15 @@ to avoid mixing implementation requirements and verification requirements.
 | ALIGN-ERR-02     | 06-pose-frame-alignment-requirements.md | Integration Test | TC-ALIGN-09 |
 | ALIGN-ERR-03     | 06-pose-frame-alignment-requirements.md | Integration Test | TC-ALIGN-12 |
 | CFS-APP-01~04    | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-01, TC-CFS-02, TC-CFS-03 |
+| CFS-APP-05~08    | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-08, TC-CFS-09, TC-CFS-10, TC-CFS-11 |
 | CFS-SB-01~04     | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-04 |
+| CFS-SB-05~12     | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-07, TC-CFS-08, TC-CFS-11 |
 | CFS-TMR-01~04    | 07-cfs-integration-requirements.md | Unit/Integration Test | TC-UWB-02, TC-UWB-03, TC-UWB-15 |
-| CFS-CFG-01~05    | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-05, TC-CFS-06, TC-CFS-07 |
-| CFS-LOG-01~04    | 07-cfs-integration-requirements.md | Module Integration Test | TC-UWB-07, TC-UWB-08 |
+| CFS-TMR-05~07    | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-09, TC-CFS-10, TC-CFS-11 |
+| CFS-CFG-01~08    | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-05, TC-CFS-06, TC-CFS-07, TC-CFS-09 |
+| CFS-LOG-01~07    | 07-cfs-integration-requirements.md | Module Integration Test | TC-UWB-07, TC-UWB-08, TC-CFS-09, TC-CFS-10, TC-CFS-11 |
+| CFS-VER-06       | 07-cfs-integration-requirements.md | Integration Test | TC-CFS-08 |
+| CFS-VER-07       | 07-cfs-integration-requirements.md | Integration Test | TC-CFS-09, TC-CFS-10 |
 
 ### 8.1 Verification Requirement Traceability
 

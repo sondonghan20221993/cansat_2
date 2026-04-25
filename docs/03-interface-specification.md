@@ -55,6 +55,25 @@ Error_Code 체계를 준수 SHALL.
 | `Camera_Pose_Message` | Camera or vision pipeline | pose, timestamp, camera_id | Optional camera pose estimate when available. |
 | `Frame_Transform_Message` | Calibration/config | source_frame, target_frame, transform, validity | Static or dynamic transform metadata used by alignment. |
 
+### 3.2B Baseline cFS SB Input Set
+
+The baseline required SB input set for the current cFS deployment is:
+
+| MID | Message Name | Publisher | Purpose |
+|---|---|---|---|
+| `0x1901` | `IMU_STATE_MID` | `imu_app` | Baseline IMU input to alignment |
+| `0x1902` | `GPS_STATE_MID` | `gps_app` | Baseline GPS input to alignment |
+| `0x1903` | `TELEMETRY_STATUS_MID` | `telemetry_app` | Baseline communication-link health input |
+| `0x1904` | `IMAGE_META_MID` | `img_app` | Baseline image metadata input to reconstruction |
+
+`IMAGE_META_MID` is a metadata/reference message only and SHALL NOT carry raw image
+binary payload on the baseline SB path.
+
+`TELEMETRY_STATUS_MID.link_state` SHALL use the values `ALIVE`, `DEGRADED`, and `LOST`.
+
+The detailed field structures for `IMU_Message` and `GPS_Message` are defined in
+Section 3.2A.
+
 ### 3.3 Output Data (Reconstruction 검증 UI 연동)
 
 Reconstruction 결과의 좌표 기반 검증 UI 연동 필드 정의:
@@ -424,6 +443,8 @@ Prototype session-state resource policy:
 | Distance | cm       | UWB ranging 입력 및 Trilateration 입력         |
 | Position | cm       | Position_Result x, y, z 필드                  |
 | Residual | cm       | 절대 오차 평균값                               |
+| GPS altitude | m    | GPS_Message.altitude_m 필드                    |
+| Angular rate | rad/s | IMU_Message.angular_rate_xyz 필드 (하드웨어 캘리브레이션 의존) |
 | Angle    | TBD      | (01-system-requirements.md에서 확정)           |
 | Time     | cFS_TIME | 시스템 공통 타임스탬프 기준                    |
 
