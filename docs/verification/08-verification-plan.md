@@ -117,6 +117,9 @@ Additional reconstruction verification cases:
 | TC-CFS-09 | Telemetry degraded transition | Link quality violates degraded threshold but not lost timeout | `TELEMETRY_STATUS_MID` reports `DEGRADED` and warning log is emitted | CFS-APP-06, CFS-TMR-06, CFS-LOG-05 |
 | TC-CFS-10 | Telemetry lost and recovery | Valid link updates stop, then resume | `TELEMETRY_STATUS_MID` transitions to `LOST` and later to `ALIVE` or `DEGRADED` with recovery log | CFS-TMR-05, CFS-LOG-05, CFS-LOG-06 |
 | TC-CFS-11 | Image metadata payload-only rule | Image capture event occurs | `IMAGE_META_MID` contains metadata/reference only and no raw binary image payload | CFS-APP-07, CFS-SB-08 |
+| TC-CFS-12 | Telemetry baseline heartbeat period | Telemetry monitor producer emits valid updates every 500 ms nominally | Link remains `ALIVE` and no degraded/lost transition is emitted under nominal reception | CFS-TMR-05, CFS-TMR-06 |
+| TC-CFS-13 | Telemetry runtime config staging | Runtime request changes telemetry timing thresholds to valid values | New configuration is staged, validated, and applied only at the documented safe application point | CFS-CFG-10, CFS-CFG-11, CFS-CFG-13, CFS-CFG-14 |
+| TC-CFS-14 | Invalid telemetry runtime config reject | Runtime request sets invalid telemetry timing values such as lost timeout <= degraded timeout | Active configuration remains unchanged and the rejection is reported through event and housekeeping telemetry | CFS-CFG-11, CFS-CFG-12, CFS-CFG-14 |
 
 ---
 

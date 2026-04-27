@@ -73,13 +73,26 @@ Define system-wide conventions.
 - The system shall expose degraded/unavailable status for missing UWB, GPS, IMU, camera, reconstruction, or alignment data rather than silently publishing nominal fused outputs.
 - Availability target and recovery timing remain open under OI-SYS-01 and OI-SYS-02.
 
-### 6.4 Operational Requirements
+### 6.4 Runtime Configuration and Recovery Requirements
+
+- Timing-related telemetry parameters SHALL support staged runtime update through a pending configuration buffer before activation.
+- Runtime updates SHALL be validated before replacing the active configuration.
+- Invalid runtime configuration values SHALL NOT overwrite the active configuration and SHALL be reported through event and housekeeping telemetry.
+- Active runtime configuration SHALL only be replaced at a documented safe application point.
+- The system SHALL distinguish at minimum the following reset/restart classes: app restart, cFS host soft reset, and host hard reset or power cycle.
+- A host hard reset or power cycle SHALL restore only validated persistent state together with a safe default configuration.
+- A cFS host soft reset SHALL restore persistent runtime configuration, cFS state, last known health state, and permitted checkpoints.
+- Repeated recovery failure within a configured reboot-loop detection window SHALL force entry into a minimum-reporting startup mode.
+- Nonessential sensor or source failures SHALL permit degraded startup and degraded nominal operation when mission mode allows continued reporting.
+- Essential telemetry, command, or health-management path failures SHALL trigger recovery handling before nominal mission continuation.
+
+### 6.5 Operational Requirements
 
 - The system shall support a ground-side cFS-managed execution environment with a remote GPU reconstruction server for DUSt3R-family processing.
 - UWB, GPS, IMU, camera, reconstruction endpoint, output format, module enable flags, and alignment transform parameters shall be configurable at startup.
 - Exact deployment split and hardware dependency list remain open under OI-SYS-02.
 
-### 6.5 Safety and Security Requirements
+### 6.6 Safety and Security Requirements
 
 - Remote reconstruction access shall be restricted to configured endpoints or tunnels during prototype operation.
 - Large artifacts shall be referenced by path/URI and shall not be silently embedded into cFS Software Bus messages.

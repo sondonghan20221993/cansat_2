@@ -43,9 +43,13 @@ baseline SB path.
 - **CFS-TMR-02**: The UWB missing-distance grace timeout SHALL be 30 ms after Output_Cycle_Timer expiry.
 - **CFS-TMR-03**: Timers SHALL use cFS timer services or an equivalent cFS-managed scheduling mechanism.
 - **CFS-TMR-04**: Timer callbacks SHALL enqueue work or signal module state; they SHALL NOT perform long-running reconstruction or blocking I/O directly.
-- **CFS-TMR-05**: `telemetry_app` SHALL use a configurable freshness timeout to classify the transport path as `LOST` when no valid update is received in time.
-- **CFS-TMR-06**: `telemetry_app` SHALL support a configurable degraded threshold distinct from the lost-link timeout.
-- **CFS-TMR-07**: `img_app` SHALL publish `IMAGE_META_MID` on image capture completion events only and SHALL support a configurable low-rate publication policy.
+- **CFS-TMR-05**: For the baseline deployment, the telemetry monitor-input producer SHALL assume a nominal heartbeat period of `500 ms`.
+- **CFS-TMR-06**: For the baseline deployment, the telemetry monitor-input producer SHALL evaluate and publish telemetry monitor freshness at least every `100 ms`.
+- **CFS-TMR-07**: `telemetry_app` SHALL transition to `DEGRADED` after `1000 ms` without a valid monitor update.
+- **CFS-TMR-08**: `telemetry_app` SHALL transition to `LOST` after `3000 ms` without a valid monitor update.
+- **CFS-TMR-09**: `telemetry_app` SHALL support configuration of degraded and lost-link thresholds distinct from the nominal heartbeat period.
+- **CFS-TMR-10**: `telemetry_app` SHALL transition from `DEGRADED` or `LOST` to `ALIVE` after one valid telemetry monitor update in the baseline deployment.
+- **CFS-TMR-11**: `img_app` SHALL publish `IMAGE_META_MID` on image capture completion events only and SHALL support a configurable low-rate publication policy.
 
 ## 5. Configuration Management
 
@@ -57,6 +61,12 @@ baseline SB path.
 - **CFS-CFG-06**: `telemetry_app` SHALL support configuration of nominal, degraded, and lost-link thresholds.
 - **CFS-CFG-07**: `telemetry_app` SHALL support configuration of the active transport identifier used for link-state assessment.
 - **CFS-CFG-08**: `img_app` SHALL support configuration of image metadata publication rate limits.
+- **CFS-CFG-09**: The baseline active transport identifier for telemetry link-state assessment SHALL be `1`.
+- **CFS-CFG-10**: Runtime updates to telemetry timing parameters SHALL first be written to a pending configuration buffer.
+- **CFS-CFG-11**: A pending telemetry configuration SHALL be validated before activation.
+- **CFS-CFG-12**: Invalid pending telemetry configuration values SHALL NOT overwrite the active configuration.
+- **CFS-CFG-13**: The active telemetry configuration SHALL only be replaced at a documented safe application point.
+- **CFS-CFG-14**: `telemetry_app` housekeeping SHALL expose the currently active telemetry timing parameters and configuration update status.
 
 ## 5A. Deployment-Specific Telemetry Link Rules
 
