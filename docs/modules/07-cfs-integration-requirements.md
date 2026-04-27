@@ -37,6 +37,32 @@ baseline SB path.
 - **CFS-SB-11**: The cFS Integration Layer SHALL subscribe to `TELEMETRY_STATUS_MID (0x1903)` for runtime health and communication-state handling.
 - **CFS-SB-12**: When UWB is disabled, the absence of UWB-specific SB messages SHALL NOT prevent IMU, GPS, telemetry, image metadata, reconstruction, or non-UWB alignment flows from entering nominal operation.
 
+## 3A. Communication Link Separation Requirements
+
+The system operates two distinct communication link roles. Each link SHALL be independently managed, monitored, and reported within the cFS integration layer.
+
+### Link Role Assignment
+
+- **CFS-LNK-01**: The LoRa telemetry link (`link_role = LORA`) SHALL carry heartbeat, housekeeping (HK), status, fault/event reports, and uplink command traffic only.
+- **CFS-LNK-02**: The image/video link (`link_role = IMG_VID`) SHALL carry image frames, video streams, large payload transfers, and reconstruction artifact traffic only.
+- **CFS-LNK-03**: Traffic classes assigned to the LoRa link SHALL NOT be routed over the image/video link, and vice versa, unless an explicit fallback policy is documented and approved.
+
+### Independent Health State Management
+
+- **CFS-LNK-04**: The LoRa link health state SHALL be managed exclusively by `telemetry_app` and published via `TELEMETRY_STATUS_MID (0x1903)` with `link_role = LORA`.
+- **CFS-LNK-05**: The image/video link health state SHALL be managed by a dedicated monitor component (e.g., `img_link_app` or equivalent) and published via a separate SB message with `link_role = IMG_VID`. The MID for this message is TBD (see OI-CFS-04).
+- **CFS-LNK-06**: The health state of the LoRa link SHALL NOT be inferred from or overridden by the health state of the image/video link, and vice versa.
+- **CFS-LNK-07**: Both link health states SHALL independently use the `ALIVE`, `DEGRADED`, and `LOST` classification defined in 03-interface-specification.md Section 3.6.2.
+- **CFS-LNK-08**: Both link health states SHALL support independent configuration of degraded and lost thresholds.
+
+### Timestamp and Correlation at the cFS Boundary
+
+- **CFS-LNK-09**: All messages published on the cFS Software Bus SHALL carry a vehicle-generated `cFS_TIME` timestamp set at the point of creation on the vehicle. Relay or bridge components SHALL NOT overwrite the vehicle-generated `timestamp` field.
+- **CFS-LNK-10**: `img_app` SHALL assign a unique `image_id` to each image capture event at the time of capture and SHALL include this `image_id` in `IMAGE_META_MID`.
+- **CFS-LNK-11**: Any LoRa status or event message that references the same image capture event SHALL carry the same `image_id` value as the corresponding `IMAGE_META_MID`.
+- **CFS-LNK-12**: Reconstruction-related messages SHALL carry the `job_id` assigned at job submission time. The `job_id` SHALL be preserved unchanged through the reconstruction request, result, and any associated LoRa event messages.
+- **CFS-LNK-13**: The `seq` field SHALL be assigned by the originating module and SHALL NOT be reassigned by relay or bridge components.
+
 ## 4. Timer Requirements
 
 - **CFS-TMR-01**: The UWB Output_Cycle_Timer period SHALL be 66 ms nominal to support 15 Hz output.
@@ -90,8 +116,9 @@ baseline SB path.
 | --- | --- | --- | --- |
 | `imu_app` | SB publisher | IMU sample ready | `IMU_STATE_MID (0x1901)` |
 | `gps_app` | SB publisher | GPS sample ready | `GPS_STATE_MID (0x1902)` |
-| `telemetry_app` | SB publisher | Link status update | `TELEMETRY_STATUS_MID (0x1903)` |
-| `img_app` | SB publisher | Image capture complete | `IMAGE_META_MID (0x1904)` |
+| `telemetry_app` | SB publisher | LoRa link status update | `TELEMETRY_STATUS_MID (0x1903)` with `link_role = LORA` |
+| `img_link_app` (or equivalent) | SB publisher | Image/video link status update | Image/video link health MID (TBD) with `link_role = IMG_VID` |
+| `img_app` | SB publisher | Image capture complete | `IMAGE_META_MID (0x1904)` with `image_id` assigned at capture |
 | UWB Module | Timer-driven processing app/component | Output_Cycle_Timer and distance messages | Position_Result SB topic, logs/events |
 | Reconstruction Module | Request/response bridge to remote execution path | Image-set ready event or explicit job request | Reconstruction result metadata SB topic, artifact reference |
 | Pose / Alignment Module | Message-driven transform processor | New source pose/result or transform config update | Aligned pose/transform metadata SB topic |
@@ -105,9 +132,16 @@ baseline SB path.
 - **CFS-VER-05**: The verification plan SHALL include failure-injection tests for event and logging behavior.
 - **CFS-VER-06**: The verification plan SHALL include tests for baseline SB input publication and subscription for `0x1901` through `0x1904`.
 - **CFS-VER-07**: The verification plan SHALL include tests for `telemetry_app` degraded/lost/recovery transitions.
+- **CFS-VER-08**: The verification plan SHALL include tests verifying that LoRa link health state transitions are independent of image/video link health state transitions (CFS-LNK-06).
+- **CFS-VER-09**: The verification plan SHALL include tests verifying that `image_id` assigned by `img_app` at capture time is preserved unchanged in `IMAGE_META_MID` and in any associated LoRa event message referencing the same capture event (CFS-LNK-10, CFS-LNK-11).
+- **CFS-VER-10**: The verification plan SHALL include tests verifying that vehicle-generated `timestamp` fields are not overwritten by relay or bridge components (CFS-LNK-09).
+- **CFS-VER-11**: The verification plan SHALL include tests verifying that `job_id` is preserved unchanged from reconstruction request through result and associated LoRa event messages (CFS-LNK-12).
 
 ## 9. Open Items
 
 - OI-CFS-01: Exact cFS message IDs and source IDs need to be assigned.
 - OI-CFS-02: Stable event IDs for UWB residual warning and module failure cases need to be assigned.
 - OI-CFS-03: Runtime-changeable configuration fields need to be finalized per module.
+- OI-CFS-04: MID assignment for the image/video link health state message (Section 3A, CFS-LNK-05) needs to be finalized.
+- OI-CFS-05: The app name and integration pattern for the image/video link monitor component (Section 3A, CFS-LNK-05) need to be decided — standalone `img_link_app` vs. component within `img_app`.
+- OI-CFS-06: Degraded and lost threshold defaults for the image/video link (CFS-LNK-08) need to be defined, analogous to CFS-TMR-07 and CFS-TMR-08 for the LoRa link.

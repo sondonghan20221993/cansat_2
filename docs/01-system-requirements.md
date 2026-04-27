@@ -50,6 +50,9 @@ Define system-wide conventions.
 - **Fault handling principles**: Missing or degraded sensor data SHALL be reported explicitly and SHALL NOT silently produce nominal fused outputs.
 - **Version compatibility rules**: Interface changes SHALL preserve backward-compatible optional fields where possible and SHALL update 03-interface-specification.md before implementation.
 - **Module optionality rules**: Sensor/source modules, including UWB, GPS, IMU, camera, and reconstruction, SHALL be independently enableable/disableable through configuration when the mission mode permits. Disabled modules SHALL produce explicit unavailable/degraded status rather than blocking unrelated modules.
+- **Communication link separation rules**: The system SHALL maintain two distinct communication link roles — a LoRa telemetry link and an image/video link — each with independent health state tracking. The LoRa link carries heartbeat, housekeeping, status, fault/event, and command traffic. The image/video link carries image, video, large payload, and reconstruction artifact traffic. Neither link's health state SHALL be inferred from the other.
+- **Timestamp origin rules**: All downlink and uplink messages SHALL carry a vehicle-generated cFS_TIME timestamp as the authoritative event time. Ground-side reception time MAY be recorded separately but SHALL NOT replace the vehicle-generated timestamp for event correlation. Image and video metadata SHALL use the same cFS_TIME basis as all other system messages.
+- **Correlation identifier rules**: Messages that describe the same vehicle event SHALL share a common set of correlation fields — `image_id`, `frame_id`, `job_id`, and `seq` — as defined in 03-interface-specification.md. Ground-side consumers SHALL use these fields to associate LoRa status data with image/video data from the same event.
 
 ## 6. System-Level Requirements
 
@@ -60,6 +63,9 @@ Define system-wide conventions.
 - The system shall preserve source-specific measurements before converting them into a common World / Map coordinate frame.
 - The system shall allow reconstruction outputs to remain in a relative reconstruction frame until alignment metadata is available.
 - The system shall support degraded operation when the UWB module is disabled, unavailable, or physically removed, provided that downstream modules can operate with GPS, IMU, camera, reconstruction, or other configured sources.
+- The system shall maintain separate health and state tracking for the LoRa telemetry link and the image/video link. Each link SHALL have an independently reported link state using the `ALIVE`, `DEGRADED`, and `LOST` classification defined in 03-interface-specification.md.
+- The system shall assign a vehicle-generated cFS_TIME timestamp to every downlink and uplink message at the point of creation on the vehicle. Ground-side consumers SHALL use this vehicle-generated timestamp as the authoritative event time for cross-link correlation.
+- The system shall include `image_id`, `frame_id`, `job_id`, and `seq` correlation fields in messages that describe the same vehicle event, enabling ground-side consumers to associate LoRa status data with image/video data from the same event.
 
 ### 6.2 Performance Requirements
 
