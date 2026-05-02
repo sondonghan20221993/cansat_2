@@ -25,16 +25,17 @@ List the top-level components.
 | UWB Module | Estimates drone/tag position from UWB Anchor distance measurements | Anchor distance messages, Anchor coordinates, timer events | Position_Result, UWB logs/status |
 | GPS Interface | Receives global position measurements when available | GPS receiver data | GPS position/time metadata |
 | IMU Interface | Receives vehicle attitude, angular rate, and acceleration data | IMU sensor data | IMU/body-frame motion metadata |
+| MAVLink Bridge Module | Receives MAVLink byte stream from the Flight Controller, parses and converts selected MAVLink messages into cFS SB messages for downstream consumers | MAVLink byte stream (serial/UART), FC MAVLink messages | Parsed FC state SB messages (position, attitude, velocity, EKF status), bridge health/status |
 | Reconstruction Module | Produces image-based 3D reconstruction outputs from drone image sets | Image set metadata, image references, optional auxiliary pose/localization | Reconstruction result reference, quality metadata, camera trajectory metadata |
-| Pose / Alignment Module | Aligns UWB, GPS, IMU, camera, and reconstruction frames into the common World / Map frame | Source poses, transforms, calibration parameters, reconstruction metadata | Aligned pose/transform metadata, calibration status, source selection metadata |
+| Pose / Alignment Module | Aligns UWB, GPS, IMU, camera, MAVLink FC state, and reconstruction frames into the common World / Map frame | Source poses, transforms, calibration parameters, reconstruction metadata | Aligned pose/transform metadata, calibration status, source selection metadata |
 | cFS Integration Layer | Provides runtime integration through cFS app lifecycle, Software Bus messages, timers, configuration, and events | Module messages, timer events, configuration tables, health/status events | Published SB messages, scheduled callbacks, event logs, diagnostic telemetry |
 
 ## 4. End-to-End Data Flow
 
 Describe how data flows through the full system.
 
-1. Sensor and source data are acquired.
-2. UWB, GPS, IMU, camera, and image-source metadata are timestamped and packaged.
+1. Sensor and source data are acquired. The MAVLink Bridge Module receives the FC MAVLink byte stream and parses it into cFS SB messages independently of other sensor paths.
+2. UWB, GPS, IMU, MAVLink FC state, camera, and image-source metadata are timestamped and packaged.
 3. Positioning and reconstruction processing are executed.
 4. Coordinate alignment is applied into the system World / Map frame.
 5. Results are packaged and delivered through the integration layer.
@@ -49,7 +50,7 @@ Define system-wide conventions.
 - **Time synchronization rules**: cFS_TIME is the system reference timestamp unless a prototype interface explicitly documents a temporary serialization format.
 - **Fault handling principles**: Missing or degraded sensor data SHALL be reported explicitly and SHALL NOT silently produce nominal fused outputs.
 - **Version compatibility rules**: Interface changes SHALL preserve backward-compatible optional fields where possible and SHALL update 03-interface-specification.md before implementation.
-- **Module optionality rules**: Sensor/source modules, including UWB, GPS, IMU, camera, and reconstruction, SHALL be independently enableable/disableable through configuration when the mission mode permits. Disabled modules SHALL produce explicit unavailable/degraded status rather than blocking unrelated modules.
+- **Module optionality rules**: Sensor/source modules, including UWB, GPS, IMU, MAVLink Bridge, camera, and reconstruction, SHALL be independently enableable/disableable through configuration when the mission mode permits. Disabled modules SHALL produce explicit unavailable/degraded status rather than blocking unrelated modules.
 - **Communication link separation rules**: The system SHALL maintain two distinct communication link roles — a LoRa telemetry link and an image/video link — each with independent health state tracking. The LoRa link carries heartbeat, housekeeping, status, fault/event, and command traffic. The image/video link carries image, video, large payload, and reconstruction artifact traffic. Neither link's health state SHALL be inferred from the other.
 - **Timestamp origin rules**: All downlink and uplink messages SHALL carry a vehicle-generated cFS_TIME timestamp as the authoritative event time. Ground-side reception time MAY be recorded separately but SHALL NOT replace the vehicle-generated timestamp for event correlation. Image and video metadata SHALL use the same cFS_TIME basis as all other system messages.
 - **Correlation identifier rules**: Messages that describe the same vehicle event SHALL share a common set of correlation fields — `image_id`, `frame_id`, `job_id`, and `seq` — as defined in 03-interface-specification.md. Ground-side consumers SHALL use these fields to associate LoRa status data with image/video data from the same event.
@@ -59,10 +60,12 @@ Define system-wide conventions.
 ### 6.1 Functional Requirements
 
 - The system shall provide a modular pipeline for collecting sensor/source data, producing reconstruction outputs, and aligning results into the common World / Map frame.
-- The system shall support UWB, GPS, IMU, camera, and reconstruction data as independent sensor/source inputs.
+- The system shall support UWB, GPS, IMU, MAVLink FC state, camera, and reconstruction data as independent sensor/source inputs.
 - The system shall preserve source-specific measurements before converting them into a common World / Map coordinate frame.
 - The system shall allow reconstruction outputs to remain in a relative reconstruction frame until alignment metadata is available.
-- The system shall support degraded operation when the UWB module is disabled, unavailable, or physically removed, provided that downstream modules can operate with GPS, IMU, camera, reconstruction, or other configured sources.
+- The system shall support degraded operation when the UWB module is disabled, unavailable, or physically removed, provided that downstream modules can operate with GPS, IMU, MAVLink FC state, camera, reconstruction, or other configured sources.
+- The MAVLink Bridge Module shall parse and convert Flight Controller MAVLink messages into cFS SB messages. It SHALL NOT pass raw MAVLink frames directly onto the cFS Software Bus.
+- The MAVLink Bridge Module shall be independently enableable/disableable. When disabled, its absence SHALL NOT prevent other sensor or alignment modules from entering nominal operation.
 - The system shall maintain separate health and state tracking for the LoRa telemetry link and the image/video link. Each link SHALL have an independently reported link state using the `ALIVE`, `DEGRADED`, and `LOST` classification defined in 03-interface-specification.md.
 - The system shall assign a vehicle-generated cFS_TIME timestamp to every downlink and uplink message at the point of creation on the vehicle. Ground-side consumers SHALL use this vehicle-generated timestamp as the authoritative event time for cross-link correlation.
 - The system shall include `image_id`, `frame_id`, `job_id`, and `seq` correlation fields in messages that describe the same vehicle event, enabling ground-side consumers to associate LoRa status data with image/video data from the same event.
@@ -76,7 +79,8 @@ Define system-wide conventions.
 ### 6.3 Reliability Requirements
 
 - The system shall isolate disabled or failed source modules so that unrelated enabled modules can continue operating when mission mode permits.
-- The system shall expose degraded/unavailable status for missing UWB, GPS, IMU, camera, reconstruction, or alignment data rather than silently publishing nominal fused outputs.
+- The system shall expose degraded/unavailable status for missing UWB, GPS, IMU, MAVLink FC state, camera, reconstruction, or alignment data rather than silently publishing nominal fused outputs.
+- A MAVLink Bridge parse failure or serial connection loss SHALL be reported as a degraded or unavailable status and SHALL NOT silently suppress downstream FC state consumers.
 - Availability target and recovery timing remain open under OI-SYS-01 and OI-SYS-02.
 
 ### 6.4 Runtime Configuration and Recovery Requirements
@@ -95,7 +99,7 @@ Define system-wide conventions.
 ### 6.5 Operational Requirements
 
 - The system shall support a ground-side cFS-managed execution environment with a remote GPU reconstruction server for DUSt3R-family processing.
-- UWB, GPS, IMU, camera, reconstruction endpoint, output format, module enable flags, and alignment transform parameters shall be configurable at startup.
+- UWB, GPS, IMU, MAVLink Bridge serial device, camera, reconstruction endpoint, output format, module enable flags, and alignment transform parameters shall be configurable at startup.
 - Exact deployment split and hardware dependency list remain open under OI-SYS-02.
 
 ### 6.6 Safety and Security Requirements

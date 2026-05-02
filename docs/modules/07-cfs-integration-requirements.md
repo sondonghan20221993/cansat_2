@@ -14,6 +14,8 @@ Define requirements for integrating modules into the cFS environment.
 - **CFS-APP-06**: `telemetry_app` SHALL publish link-state classification using `ALIVE`, `DEGRADED`, or `LOST`.
 - **CFS-APP-07**: `img_app` SHALL publish `IMAGE_META_MID` containing image metadata and artifact reference information only.
 - **CFS-APP-08**: `imu_app` and `gps_app` SHALL publish timestamped sensor state messages onto SB using the interface definitions in 03-interface-specification.md.
+- **CFS-APP-09**: `mavlink_bridge_app` SHALL be implemented as a cFS app responsible for receiving the FC MAVLink byte stream, parsing it, and publishing typed cFS SB messages for each supported MAVLink message type.
+- **CFS-APP-10**: `mavlink_bridge_app` SHALL NOT place raw MAVLink byte frames onto the cFS Software Bus. All FC data SHALL be converted to the typed SB message format defined in 03-interface-specification.md Section 3.2AB before publication.
 
 ## 3. Software Bus Message Handling
 
@@ -21,7 +23,11 @@ The baseline required SB input set SHALL consist of `IMU_STATE_MID (0x1901)`,
 `GPS_STATE_MID (0x1902)`, `TELEMETRY_STATUS_MID (0x1903)`, and
 `IMAGE_META_MID (0x1904)`. `IMAGE_META_MID` SHALL carry metadata and artifact
 reference fields only and SHALL NOT carry raw image binary payload in the
-baseline SB path.
+baseline SB path. `mavlink_bridge_app` extends the baseline SB set with
+`FC_LOCAL_POS_MID (0x1905)`, `FC_ATTITUDE_MID (0x1906)`, `FC_GPS_RAW_MID (0x1907)`,
+`FC_ODOMETRY_MID (0x1908)`, `FC_EKF_STATUS_MID (0x1909)`, and
+`MAVLINK_BRIDGE_STATUS_MID (0x190A)` as defined in 03-interface-specification.md
+Section 3.2AB. All MID values are provisional pending final assignment (OI-CFS-01).
 
 - **CFS-SB-01**: The integration layer SHALL route UWB Position_Result messages through cFS Software Bus for downstream alignment and logging.
 - **CFS-SB-02**: The integration layer SHALL route reconstruction request/result metadata through cFS Software Bus or a documented bridge when the payload is too large for direct SB transport.
@@ -36,6 +42,12 @@ baseline SB path.
 - **CFS-SB-10**: The Reconstruction Module SHALL subscribe to `IMAGE_META_MID (0x1904)`.
 - **CFS-SB-11**: The cFS Integration Layer SHALL subscribe to `TELEMETRY_STATUS_MID (0x1903)` for runtime health and communication-state handling.
 - **CFS-SB-12**: When UWB is disabled, the absence of UWB-specific SB messages SHALL NOT prevent IMU, GPS, telemetry, image metadata, reconstruction, or non-UWB alignment flows from entering nominal operation.
+- **CFS-SB-13**: `mavlink_bridge_app` SHALL publish `FC_LOCAL_POS_MID (0x1905)` on SB for each received `LOCAL_POSITION_NED` MAVLink message.
+- **CFS-SB-14**: `mavlink_bridge_app` SHALL publish `FC_ATTITUDE_MID (0x1906)` on SB for each received `ATTITUDE` MAVLink message.
+- **CFS-SB-15**: `mavlink_bridge_app` SHALL publish `FC_GPS_RAW_MID (0x1907)` on SB for each received `GPS_RAW_INT` MAVLink message.
+- **CFS-SB-16**: `mavlink_bridge_app` SHALL publish `FC_ODOMETRY_MID (0x1908)` and `FC_EKF_STATUS_MID (0x1909)` on SB when the corresponding MAVLink messages are received. Absence of these messages SHALL NOT be treated as a parse error.
+- **CFS-SB-17**: `mavlink_bridge_app` SHALL publish `MAVLINK_BRIDGE_STATUS_MID (0x190A)` at a configurable periodic rate. This message SHALL report `link_state` using `ALIVE`, `DEGRADED`, or `LOST` based on the age of the most recently received MAVLink message.
+- **CFS-SB-18**: When `mavlink_bridge_app` is disabled, the absence of `FC_LOCAL_POS_MID`, `FC_ATTITUDE_MID`, `FC_GPS_RAW_MID`, `FC_ODOMETRY_MID`, `FC_EKF_STATUS_MID`, and `MAVLINK_BRIDGE_STATUS_MID` SHALL NOT prevent IMU, GPS, UWB, telemetry, image metadata, reconstruction, or non-MAVLink alignment flows from entering nominal operation.
 
 ## 3A. Communication Link Separation Requirements
 
@@ -99,6 +111,7 @@ The system operates two distinct communication link roles. Each link SHALL be in
 - **CFS-DEP-01**: For Linux-based deployments using a serial-connected telemetry radio, the telemetry monitor-input producer SHOULD use a stable device path under `/dev/serial/by-id/` when available.
 - **CFS-DEP-02**: Enumeration-dependent serial paths such as `/dev/ttyUSB*` SHOULD be treated as fallback or debug-only paths unless the deployment environment guarantees stable naming.
 - **CFS-DEP-03**: The deployment configuration SHALL document the serial device path, baud rate, and active transport identifier used by the telemetry monitor-input producer.
+- **CFS-DEP-04**: For Linux-based deployments, `mavlink_bridge_app` SHOULD use a stable device path under `/dev/serial/by-id/` for the FC MAVLink serial connection when available. Enumeration-dependent paths such as `/dev/ttyUSB*` SHOULD be treated as fallback or debug-only paths. The deployment configuration SHALL document the FC serial device path and baud rate.
 
 ## 6. Logging and Event Handling
 
@@ -109,6 +122,9 @@ The system operates two distinct communication link roles. Each link SHALL be in
 - **CFS-LOG-05**: `telemetry_app` SHALL log transitions into `DEGRADED` and `LOST` at `WARNING` and `ERROR` levels respectively.
 - **CFS-LOG-06**: `telemetry_app` SHALL log recovery from `LOST` to `ALIVE` or `DEGRADED` at `INFO` level.
 - **CFS-LOG-07**: Invalid or unreachable image artifact references SHALL be logged as `ERROR` by `img_app` or the Reconstruction Module.
+- **CFS-LOG-08**: `mavlink_bridge_app` SHALL log serial connection loss or reconnection at `WARNING` and `INFO` levels respectively.
+- **CFS-LOG-09**: `mavlink_bridge_app` SHALL log MAVLink parse errors at `WARNING` level with a stable event identifier and SHALL include the raw message ID when available.
+- **CFS-LOG-10**: `mavlink_bridge_app` SHALL log transitions into `DEGRADED` and `LOST` link states at `WARNING` and `ERROR` levels respectively, and SHALL log recovery to `ALIVE` at `INFO` level.
 
 ## 7. Module Integration Method
 
@@ -119,6 +135,7 @@ The system operates two distinct communication link roles. Each link SHALL be in
 | `telemetry_app` | SB publisher | LoRa link status update | `TELEMETRY_STATUS_MID (0x1903)` with `link_role = LORA` |
 | `img_link_app` (or equivalent) | SB publisher | Image/video link status update | Image/video link health MID (TBD) with `link_role = IMG_VID` |
 | `img_app` | SB publisher | Image capture complete | `IMAGE_META_MID (0x1904)` with `image_id` assigned at capture |
+| `mavlink_bridge_app` | Serial reader + SB publisher | MAVLink byte received from FC | `FC_LOCAL_POS_MID (0x1905)`, `FC_ATTITUDE_MID (0x1906)`, `FC_GPS_RAW_MID (0x1907)`, `FC_ODOMETRY_MID (0x1908)`, `FC_EKF_STATUS_MID (0x1909)`, `MAVLINK_BRIDGE_STATUS_MID (0x190A)` |
 | UWB Module | Timer-driven processing app/component | Output_Cycle_Timer and distance messages | Position_Result SB topic, logs/events |
 | Reconstruction Module | Request/response bridge to remote execution path | Image-set ready event or explicit job request | Reconstruction result metadata SB topic, artifact reference |
 | Pose / Alignment Module | Message-driven transform processor | New source pose/result or transform config update | Aligned pose/transform metadata SB topic |
@@ -136,6 +153,10 @@ The system operates two distinct communication link roles. Each link SHALL be in
 - **CFS-VER-09**: The verification plan SHALL include tests verifying that `image_id` assigned by `img_app` at capture time is preserved unchanged in `IMAGE_META_MID` and in any associated LoRa event message referencing the same capture event (CFS-LNK-10, CFS-LNK-11).
 - **CFS-VER-10**: The verification plan SHALL include tests verifying that vehicle-generated `timestamp` fields are not overwritten by relay or bridge components (CFS-LNK-09).
 - **CFS-VER-11**: The verification plan SHALL include tests verifying that `job_id` is preserved unchanged from reconstruction request through result and associated LoRa event messages (CFS-LNK-12).
+- **CFS-VER-12**: The verification plan SHALL include tests verifying that `mavlink_bridge_app` correctly parses and publishes each baseline MAVLink message type as the corresponding cFS SB message (CFS-SB-13 through CFS-SB-16).
+- **CFS-VER-13**: The verification plan SHALL include tests verifying that `mavlink_bridge_app` does NOT place raw MAVLink byte frames onto the SB (CFS-APP-10).
+- **CFS-VER-14**: The verification plan SHALL include tests verifying that `MAVLINK_BRIDGE_STATUS_MID` transitions through `ALIVE`, `DEGRADED`, and `LOST` states based on MAVLink message age (CFS-SB-17).
+- **CFS-VER-15**: The verification plan SHALL include tests verifying that disabling `mavlink_bridge_app` does not prevent other sensor or alignment modules from entering nominal operation (CFS-SB-18).
 
 ## 9. Open Items
 
@@ -145,3 +166,6 @@ The system operates two distinct communication link roles. Each link SHALL be in
 - OI-CFS-04: MID assignment for the image/video link health state message (Section 3A, CFS-LNK-05) needs to be finalized.
 - OI-CFS-05: The app name and integration pattern for the image/video link monitor component (Section 3A, CFS-LNK-05) need to be decided — standalone `img_link_app` vs. component within `img_app`.
 - OI-CFS-06: Degraded and lost threshold defaults for the image/video link (CFS-LNK-08) need to be defined, analogous to CFS-TMR-07 and CFS-TMR-08 for the LoRa link.
+- OI-CFS-07: Final MID assignments for `mavlink_bridge_app` outputs (0x1905–0x190A) need to be confirmed (Section 3.2AB, CFS-SB-13 through CFS-SB-17).
+- OI-CFS-08: Baseline MAVLink message set for `mavlink_bridge_app` needs to be frozen — specifically whether `ODOMETRY (#331)` and `EKF_STATUS_REPORT (#193)` are required or optional in the baseline deployment.
+- OI-CFS-09: `mavlink_bridge_app` error recovery policy needs to be defined — serial reconnect interval, maximum retry count, and behavior when the FC is unreachable at startup.

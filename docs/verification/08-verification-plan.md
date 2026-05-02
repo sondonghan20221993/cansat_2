@@ -45,7 +45,7 @@
 |---|---|---|
 | Reconstruction Module | Pipeline functions, remote execution, artifact handling, accumulated map manifest | See TC-REC-01 through TC-REC-18 |
 | Pose / Alignment Module | Transform math, calibration status, sensor fallback, per-chunk alignment metadata | See TC-ALIGN-01 through TC-ALIGN-13 |
-| cFS Integration Layer | Message routing, timers, configuration, app lifecycle, event/log behavior | See TC-CFS-01 through TC-CFS-07 |
+| cFS Integration Layer | Message routing, timers, configuration, app lifecycle, event/log behavior | See TC-CFS-01 through TC-CFS-19 |
 ### 3.3 Reconstruction 검�?UI ?�스??
 | TC ID       | ?�스??�?                                 | ?�력 조건                                                        | 기�? 출력                                                              | ?�???�구?�항                        |
 |-------------|--------------------------------------------|------------------------------------------------------------------|------------------------------------------------------------------------|--------------------------------------|
@@ -120,6 +120,11 @@ Additional reconstruction verification cases:
 | TC-CFS-12 | Telemetry baseline heartbeat period | Telemetry monitor producer emits valid updates every 500 ms nominally | Link remains `ALIVE` and no degraded/lost transition is emitted under nominal reception | CFS-TMR-05, CFS-TMR-06 |
 | TC-CFS-13 | Telemetry runtime config staging | Runtime request changes telemetry timing thresholds to valid values | New configuration is staged, validated, and applied only at the documented safe application point | CFS-CFG-10, CFS-CFG-11, CFS-CFG-13, CFS-CFG-14 |
 | TC-CFS-14 | Invalid telemetry runtime config reject | Runtime request sets invalid telemetry timing values such as lost timeout <= degraded timeout | Active configuration remains unchanged and the rejection is reported through event and housekeeping telemetry | CFS-CFG-11, CFS-CFG-12, CFS-CFG-14 |
+| TC-CFS-15 | MAVLink Bridge nominal parse and publish | FC sends `LOCAL_POSITION_NED`, `ATTITUDE`, and `GPS_RAW_INT` over serial | `FC_LOCAL_POS_MID (0x1905)`, `FC_ATTITUDE_MID (0x1906)`, and `FC_GPS_RAW_MID (0x1907)` are published on SB with correct field values and vehicle-generated `cFS_TIME` timestamp | CFS-APP-09, CFS-SB-13, CFS-SB-14, CFS-SB-15 |
+| TC-CFS-16 | MAVLink Bridge raw frame not on SB | FC sends a valid MAVLink frame | No raw MAVLink byte frame appears on the cFS Software Bus; only typed SB messages are published | CFS-APP-10 |
+| TC-CFS-17 | MAVLink Bridge optional message handling | FC sends `ODOMETRY` and `EKF_STATUS_REPORT` | `FC_ODOMETRY_MID (0x1908)` and `FC_EKF_STATUS_MID (0x1909)` are published when received; their absence does not trigger a parse error | CFS-SB-16 |
+| TC-CFS-18 | MAVLink Bridge status transitions | MAVLink messages stop arriving, then resume | `MAVLINK_BRIDGE_STATUS_MID` transitions from `ALIVE` to `DEGRADED` to `LOST` and back to `ALIVE` at configured thresholds; transitions are logged at correct severity levels | CFS-SB-17, CFS-LOG-08, CFS-LOG-10 |
+| TC-CFS-19 | MAVLink Bridge disabled isolation | `mavlink_bridge_app` is disabled in configuration | IMU, GPS, UWB, telemetry, image metadata, reconstruction, and non-MAVLink alignment flows enter nominal operation without `FC_*_MID` messages | CFS-SB-18 |
 
 ---
 
@@ -265,14 +270,25 @@ to avoid mixing implementation requirements and verification requirements.
 | ALIGN-ERR-03     | 06-pose-frame-alignment-requirements.md | Integration Test | TC-ALIGN-12 |
 | CFS-APP-01~04    | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-01, TC-CFS-02, TC-CFS-03 |
 | CFS-APP-05~08    | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-08, TC-CFS-09, TC-CFS-10, TC-CFS-11 |
+| CFS-APP-09~10    | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-15, TC-CFS-16 |
 | CFS-SB-01~04     | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-04 |
 | CFS-SB-05~12     | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-07, TC-CFS-08, TC-CFS-11 |
+| CFS-SB-13~15     | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-15 |
+| CFS-SB-16        | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-17 |
+| CFS-SB-17        | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-18 |
+| CFS-SB-18        | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-19 |
 | CFS-TMR-01~04    | 07-cfs-integration-requirements.md | Unit/Integration Test | TC-UWB-02, TC-UWB-03, TC-UWB-15 |
 | CFS-TMR-05~07    | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-09, TC-CFS-10, TC-CFS-11 |
 | CFS-CFG-01~08    | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-05, TC-CFS-06, TC-CFS-07, TC-CFS-09 |
 | CFS-LOG-01~07    | 07-cfs-integration-requirements.md | Module Integration Test | TC-UWB-07, TC-UWB-08, TC-CFS-09, TC-CFS-10, TC-CFS-11 |
+| CFS-LOG-08~10    | 07-cfs-integration-requirements.md | Module Integration Test | TC-CFS-18 |
+| CFS-DEP-04       | 07-cfs-integration-requirements.md | Deployment Verification | TBD (hardware deployment test) |
 | CFS-VER-06       | 07-cfs-integration-requirements.md | Integration Test | TC-CFS-08 |
 | CFS-VER-07       | 07-cfs-integration-requirements.md | Integration Test | TC-CFS-09, TC-CFS-10 |
+| CFS-VER-12       | 07-cfs-integration-requirements.md | Integration Test | TC-CFS-15 |
+| CFS-VER-13       | 07-cfs-integration-requirements.md | Integration Test | TC-CFS-16 |
+| CFS-VER-14       | 07-cfs-integration-requirements.md | Integration Test | TC-CFS-18 |
+| CFS-VER-15       | 07-cfs-integration-requirements.md | Integration Test | TC-CFS-19 |
 
 ### 8.1 Verification Requirement Traceability
 
